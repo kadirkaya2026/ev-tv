@@ -10,16 +10,33 @@ android {
         applicationId 'com.evim.tv'
         minSdk 26
         targetSdk 35
-        versionCode 3
-        versionName '1.2'
+        versionCode 4
+        versionName '1.3'
+    }
+
+    // Sabit imza: her sürüm aynı anahtarla imzalanmalı ki uygulama içinden eski
+    // sürümün üzerine güncelleme kurulabilsin. Anahtar repoda DEĞİL; GitHub
+    // Actions derleme sırasında gizli ayarlardan (Secrets) app/evtv-release.jks
+    // dosyasını ve EVTV_KEY_PASS şifresini oluşturur. Yoksa debug imzası kullanılır.
+    def evtvKeystore = file('evtv-release.jks')
+    signingConfigs {
+        evtv {
+            storeFile evtvKeystore
+            storePassword System.getenv('EVTV_KEY_PASS')
+            keyAlias 'evtv'
+            keyPassword System.getenv('EVTV_KEY_PASS')
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            // Kişisel kullanım: release de debug anahtarıyla imzalanır, doğrudan kurulabilir.
-            signingConfig signingConfigs.debug
+            signingConfig evtvKeystore.exists() ? signingConfigs.evtv : signingConfigs.debug
         }
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     compileOptions {

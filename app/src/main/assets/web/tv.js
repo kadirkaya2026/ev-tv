@@ -23,7 +23,9 @@
     wallIdx: 0,
     media: { enabled: false, movies: [], shows: [] },
     details: {},
-    detailItem: null
+    detailItem: null,
+    update: null,
+    updateToasted: false
   };
 
   // ------------------------------------------------------------ yardımcılar
@@ -54,11 +56,14 @@
     settings: '<svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
   };
 
+  GLYPHS.update = '<svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>';
+
   var BUILTIN = {
     draw: { label: 'Çizim Tahtası', kicker: 'Birlikte çizin', sub: 'Telefonlarınızdan çizdiğiniz her çizgi burada anında görünür.' },
     assistant: { label: 'Asistan', kicker: 'Claude ile', sub: 'Film önerisi, tarif, merak ettiğin her şey. Mikrofon tuşuna bas ya da telefondan yaz.' },
     connect: { label: 'Telefonu Bağla', kicker: 'Ev ağı', sub: 'QR kodu okut; telefonun çizim kalemi, klavye ve ayar ekranı olsun.' },
-    settings: { label: 'Ayarlar', kicker: 'Sistem', sub: 'Wi-Fi, ses, görüntü ve diğer Android ayarları.' }
+    settings: { label: 'Ayarlar', kicker: 'Sistem', sub: 'Wi-Fi, ses, görüntü ve diğer Android ayarları.' },
+    update: { label: 'Güncellemeler', kicker: 'Ev TV', sub: 'Yeni sürüm çıktığında tek tuşla, silmeden güncelle.' }
   };
   BUILTIN.connect.kicker = 'Her yerden';
   BUILTIN.connect.sub = 'QR kodu okut; telefonun çizim kalemi, klavye ve ayar ekranı olsun.';
@@ -155,7 +160,8 @@
       label = BUILTIN[kind].label;
       art = '<div class="art c-' + kind + '">' + GLYPHS[kind] + '</div>';
     }
-    el.innerHTML = art + '<div class="fav-dot"></div><div class="label">' + esc(label) + '</div>';
+    var badge = (kind === 'update' && S.update && S.update.newer) ? '<span class="badge">YENİ</span>' : '';
+    el.innerHTML = art + badge + '<div class="fav-dot"></div><div class="label">' + esc(label) + '</div>';
     return el;
   }
 
@@ -194,6 +200,7 @@
     t.appendChild(appTile('draw'));
     t.appendChild(appTile('assistant'));
     S.favs.forEach(function (pkg) { var a = appByPkg(pkg); if (a) t.appendChild(appTile('app', a)); });
+    if (S.update && S.update.newer) t.appendChild(appTile('update'));
     rows.appendChild(top);
 
     if (S.media.movies && S.media.movies.length) {
@@ -211,6 +218,7 @@
     S.apps.forEach(function (a) { g.appendChild(appTile('app', a)); });
     g.appendChild(appTile('connect'));
     g.appendChild(appTile('settings'));
+    g.appendChild(appTile('update'));
     rows.appendChild(all);
 
     var foot = document.createElement('div');
@@ -431,7 +439,11 @@
         if (last) sub = '“' + last.text + '”';
         else if (!S.hasKey) sub = 'Kurulum: Telefonu Bağla → Ayarlar sekmesinde Claude API anahtarını gir.';
       }
-      setHero('b' + kind + (kind === 'assistant' ? S.chat.length : ''), b.kicker, b.label, '', sub);
+      if (kind === 'update' && S.update) {
+        sub = S.update.newer ? 'Yeni sürüm hazır: v' + S.update.latest + ' (yüklü: v' + S.update.current + '). Açmak için OK.'
+          : 'En güncel sürümü kullanıyorsun (v' + S.update.current + ').';
+      }
+      setHero('b' + kind + (kind === 'assistant' ? S.chat.length : '') + (kind === 'update' && S.update ? S.update.latest : ''), b.kicker, b.label, '', sub);
     }
   }
 
@@ -517,7 +529,7 @@
   function show(name) {
     $$('.screen').forEach(function (s) { s.classList.toggle('active', s.id === name); });
     S.screen = name;
-    var panel = name === 'draw' || name === 'assistant' || name === 'connect';
+    var panel = name === 'draw' || name === 'assistant' || name === 'connect' || name === 'update';
     document.body.classList.toggle('panel', panel);
     document.body.classList.toggle('deep', false);
     if (name === 'home') {
@@ -529,6 +541,7 @@
     if (panel && BG.mode !== 'wall') showWall();
     if (name === 'draw') boardChanged();
     if (name === 'assistant') renderChat();
+    if (name === 'update') { renderUpdate(); checkUpdate(); }
     if (name !== 'detail') setFocus($('#' + name + ' .focusable'));
   }
 
@@ -584,7 +597,7 @@
     } else if (kind === 'media') {
       var it = mediaItem(el);
       if (it) openDetail(it);
-    } else if (kind === 'draw' || kind === 'assistant' || kind === 'connect') {
+    } else if (kind === 'draw' || kind === 'assistant' || kind === 'connect' || kind === 'update') {
       show(kind);
     } else if (kind === 'settings') {
       if (A) A.openSettings(); else toast('Android ayarları açılır');
@@ -597,6 +610,16 @@
       startVoice();
     } else if (action === 'resetChat') {
       if (A) A.resetAssistant(); else onEvent({ type: 'chatReset' });
+    } else if (action === 'checkUpdate') {
+      $('#updMsg').textContent = 'Kontrol ediliyor…';
+      checkUpdate();
+    } else if (action === 'doUpdate') {
+      if (!S.update || !S.update.url) return;
+      $('#updMsg').textContent = 'İndiriliyor…';
+      $('#updBarWrap').hidden = false;
+      $('#updBar').style.width = '0';
+      if (A && A.startUpdate) A.startUpdate(S.update.url);
+      else { tv.updateProgress(60); setTimeout(function () { tv.updateStatus(true, 'İndirildi. Ekrandaki onayda “Güncelle”ye bas.'); }, 500); }
     } else if (action === 'trailer') {
       openUrl('https://www.youtube.com/watch?v=' + el.dataset.v);
     } else if (action === 'openApp') {
@@ -898,6 +921,34 @@
   }
 
 
+  // ------------------------------------------------------------ güncellemeler
+  function checkUpdate() {
+    if (A && A.checkUpdate) { A.checkUpdate(); return; }
+    // Önizleme
+    tv.updateInfo(JSON.stringify({ current: '1.2', latest: '1.3', newer: true, url: 'https://example.invalid/ev-tv.apk',
+      notes: 'Önizleme: gerçek cihazda GitHub Releases notları burada görünür.' }));
+  }
+
+  function renderUpdate() {
+    var u = S.update, btn = $('#updBtn');
+    var cur = (A && A.getVersion) ? A.getVersion() : (u ? u.current : '');
+    if (!u) {
+      $('#updVer').textContent = 'Yüklü sürüm: v' + cur;
+    } else if (u.newer) {
+      $('#updVer').textContent = 'Yeni sürüm hazır: v' + u.latest + '  ·  yüklü: v' + u.current;
+    } else {
+      $('#updVer').textContent = 'En güncel sürümü kullanıyorsun (v' + u.current + ')';
+    }
+    $('#updNotes').textContent = u && u.newer ? (u.notes || '') : '';
+    var show = !!(u && u.newer && u.url);
+    btn.hidden = !show;
+    btn.classList.toggle('focusable', show);
+    if (S.screen === 'update' && S.focus && !visible(S.focus)) setFocus($('#update .focusable'));
+    if (S.screen === 'update' && show && S.focus && S.focus.dataset.action !== 'doUpdate' && !S.updFocused) {
+      S.updFocused = true; setFocus(btn);
+    }
+  }
+
   // ------------------------------------------------------------ saat
   function tick() {
     var d = new Date();
@@ -930,6 +981,28 @@
       onEvent(ev);
       if (RELAY[ev.type]) relay(ev);
     },
+    updateInfo: function (json) {
+      var d;
+      try { d = JSON.parse(json); } catch (e) { return; }
+      if (d.error) { $('#updMsg').textContent = d.error; return; }
+      var had = S.update && S.update.newer;
+      S.update = d;
+      renderUpdate();
+      if (d.newer && !had) {
+        buildRows(true);
+        if (!S.updateToasted) { S.updateToasted = true; toast('Yeni sürüm hazır: v' + d.latest + ' — Güncellemeler\'e git'); }
+      }
+    },
+    updateProgress: function (pct) {
+      $('#updBarWrap').hidden = false;
+      $('#updBar').style.width = pct + '%';
+      $('#updMsg').textContent = 'İndiriliyor… %' + pct;
+    },
+    updateStatus: function (ok, msg) {
+      $('#updMsg').textContent = msg;
+      if (!ok) $('#updBarWrap').hidden = true;
+      toast(msg);
+    },
     voiceResult: function (text) {
       if (text === null) toast('Bu cihazda ses tanıma yok. Telefondan yazabilirsin.');
       else if (text) A && A.ask(text);
@@ -960,6 +1033,8 @@
     loadMedia();
     setInterval(loadWalls, 6 * 3600 * 1000);
     setInterval(loadMedia, 3600 * 1000);
+    setTimeout(checkUpdate, 8000);
+    setInterval(checkUpdate, 6 * 3600 * 1000);
     if (A) {
       try { onEvent(JSON.parse(A.getState())); } catch (e) { /* yok say */ }
     } else if (/demo/.test(location.hash)) {

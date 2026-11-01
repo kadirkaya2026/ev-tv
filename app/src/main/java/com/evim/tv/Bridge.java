@@ -94,6 +94,31 @@ public class Bridge {
     }
 
     @JavascriptInterface
+    public String getVersion() {
+        return Updater.currentVersion();
+    }
+
+    /** Son sürümü sorar; sonuç tv.updateInfo(json) ile gelir. */
+    @JavascriptInterface
+    public void checkUpdate() {
+        new Thread(() -> {
+            String json;
+            try {
+                json = Updater.check().toString();
+            } catch (Exception e) {
+                json = "{\"error\":" + JSONObject.quote("Sürüm bilgisi alınamadı (" + e.getMessage() + ")") + "}";
+            }
+            final String out = json;
+            activity.runOnUiThread(() -> activity.js("window.tv && tv.updateInfo(" + JSONObject.quote(out) + ")"));
+        }, "evtv-check").start();
+    }
+
+    @JavascriptInterface
+    public void startUpdate(String apkUrl) {
+        activity.runOnUiThread(() -> activity.startUpdate(apkUrl));
+    }
+
+    @JavascriptInterface
     public void startVoice() {
         activity.runOnUiThread(activity::startVoice);
     }

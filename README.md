@@ -42,6 +42,19 @@ adb connect KUTU_IP_ADRESI
 adb install -r ev-tv.apk
 ```
 
+## Güncelleme
+
+v1.3'ten itibaren uygulama kendi kendini günceller: yeni sürüm çıkınca ana ekranda **Güncellemeler** kartı "YENİ" etiketiyle görünür → **Şimdi Güncelle** → sistemin onay ekranında **Güncelle**. Favoriler, API anahtarı ve çizimler korunur. İlk seferde Android "bilinmeyen uygulamaları yükleme" izni ister; Ev TV'ye izin ver.
+
+> v1.2 ve öncesi her derlemede farklı imzayla çıktığı için v1.3'e geçerken **bir kez** eski sürümü kaldırıp yeniden kurman gerekir. Sonrası hep uygulama içinden.
+
+### Derleme imzası (repo sahibi için)
+Sürümlerin hepsi aynı anahtarla imzalanmalı. Anahtar repoda değil, GitHub → Settings → Secrets and variables → Actions'ta durur:
+- `EVTV_KEYSTORE_B64`: `evtv-release.jks` dosyasının base64 hali
+- `EVTV_KEY_PASS`: anahtar şifresi
+
+Bu ikisi yoksa Actions APK'yı derler ama **Releases'e yayınlamaz** (yanlış imzalı sürüm güncellemeyi bozmasın diye).
+
 ## 3. Ana ekran yap
 
 - **Çoğu Android TV kutusu (ör. çoğu Çin malı kutu, Mi Box eski sürümleri):** Kurduktan sonra kumandada **Home** tuşuna bas. "Ana ekran uygulamasını seç" sorulursa **Ev TV** → **Her zaman**.
