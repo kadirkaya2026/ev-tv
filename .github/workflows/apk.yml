@@ -37,10 +37,20 @@ jobs:
           path: ev-tv.apk
           retention-days: 30
 
-      # v1.0 gibi bir etiket gönderilince APK Releases sayfasına yüklenir
+      # main'e her push'ta: app/build.gradle'daki versionName ile (ör. v1.0) Release açılır/güncellenir
+      - name: Sürüm numarasını oku
+        if: github.ref == 'refs/heads/main'
+        id: ver
+        run: echo "name=v$(grep -oP "versionName '\\K[^']+" app/build.gradle)" >> "$GITHUB_OUTPUT"
+
       - name: Sürüm yayınla
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.ver.outputs.name || github.ref_name }}
+          name: Ev TV ${{ steps.ver.outputs.name || github.ref_name }}
+          target_commitish: ${{ github.sha }}
           files: ev-tv.apk
+          overwrite_files: true
+          make_latest: true
           generate_release_notes: true

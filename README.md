@@ -84,13 +84,9 @@ Android tarafı (`app/src/main/java/com/evim/tv/`):
 - `LocalServer`: telefon sayfası, canlı olaylar (SSE), çizim ve asistan API'si.
 - `Assistant`: Claude çağrısı (anthropic-java SDK).
 
-Derleme: `gradle assembleRelease` (Android SDK ve JDK 17 gerekir). Her push'ta GitHub Actions derler; `v1.1` gibi bir etiket gönderince APK otomatik olarak Releases'e yüklenir:
+Derleme: `gradle assembleRelease` (Android SDK ve JDK 17 gerekir). `main`'e her push'ta GitHub Actions derler ve APK'yı Releases'e yükler. Sürüm adı `app/build.gradle` içindeki `versionName`'den gelir (ör. `1.0` → `v1.0`).
 
-```bash
-git tag v1.1 && git push origin v1.1
-```
-
-Yeni sürümde `app/build.gradle` içindeki `versionCode`'u bir artır ki kutu güncelleme olarak kursun.
+Yeni sürüm çıkarmak için `app/build.gradle`'da `versionCode`'u bir artır (kutu güncelleme olarak kursun) ve `versionName`'i değiştir (ör. `1.1`).
 
 ## Lisans
 
