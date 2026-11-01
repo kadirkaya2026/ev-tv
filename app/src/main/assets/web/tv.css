@@ -314,6 +314,19 @@ body.deep .hero { opacity: .0; }
   font-size: .8rem; font-weight: 800; box-shadow: 0 .3rem .8rem rgba(0,0,0,.4);
 }
 
+/* ================================================================ dokunmatik (telefon/tablet) */
+body.touch { cursor: auto; }
+body.touch #home .rows {
+  bottom: 0; overflow-y: auto; overflow-x: hidden; transform: none !important;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+body.touch #home .rows::-webkit-scrollbar, body.touch .track-clip::-webkit-scrollbar { display: none; }
+body.touch .track-clip { overflow-x: auto; clip-path: none; padding-top: 1.2rem; padding-bottom: 3rem; margin-top: -1.2rem; scrollbar-width: none; }
+body.touch .track { transform: none !important; }
+body.touch .row.past { opacity: 1; }
+body.touch .attrib { padding-bottom: 4rem; }
+body.touch .tile .label { opacity: 1; transform: none; }
+
 /* ================================================================ ekran koruyucu */
 #saver {
   position: fixed; inset: 0; z-index: 8; pointer-events: none;

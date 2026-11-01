@@ -10,8 +10,8 @@ android {
         applicationId 'com.evim.tv'
         minSdk 26
         targetSdk 35
-        versionCode 5
-        versionName '1.4'
+        versionCode 6
+        versionName '1.5'
     }
 
     // v1.2'de sorunsuz kurulan imza türü: Android debug anahtarı. Anahtar dosyası

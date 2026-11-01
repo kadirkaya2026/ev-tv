@@ -71,9 +71,29 @@
   var REMOTE_BASE = 'https://ekatalox.com';
   var IDLE_MS = 5 * 60 * 1000; // ekran koruyucu
 
+  // Ağ istekleri Android tarafında yapılır (yerel dosyadan açılan sayfada CORS engeli olmasın)
+  var httpCalls = {}, httpSeq = 0;
   function fetchJson(url) {
+    if (A && A.httpGet) {
+      return new Promise(function (resolve, reject) {
+        var id = 'h' + (++httpSeq);
+        httpCalls[id] = { resolve: resolve, reject: reject };
+        A.httpGet(url, id);
+      });
+    }
     return fetch(url).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
   }
+  function httpResult(id, status, body) {
+    var c = httpCalls[id];
+    if (!c) return;
+    delete httpCalls[id];
+    if (status < 200 || status >= 300) { c.reject(new Error('HTTP ' + status)); return; }
+    try { c.resolve(JSON.parse(body)); } catch (e) { c.reject(e); }
+  }
+
+  // Dokunmatik cihaz (telefon/tablet): yerel kaydırma kullanılır
+  var TOUCH = !!(A && A.isTouch && A.isTouch()) || (!A && /touch/.test(location.hash));
+  if (TOUCH) document.body.classList.add('touch');
 
   // ------------------------------------------------------------ önizleme verisi (tarayıcıda)
   function svgUri(svg) { return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg); }
@@ -317,8 +337,19 @@
     BG.mediaTimer = setTimeout(function () { if (BG.mode === 'media') bgShow(item.backdrop || item.card); }, 380);
   }
 
+  // Manzara gelmezse film/dizi sahne görselleri arka plan olur
+  function mediaWalls() {
+    var list = [];
+    (S.media.movies || []).concat(S.media.shows || []).forEach(function (it) {
+      if (it.backdrop) list.push({ hd: it.backdrop, uhd: it.backdrop, credit: it.title });
+    });
+    return list;
+  }
+
   function setWalls(list) {
-    var first = !S.walls.length;
+    if (!list || !list.length) return;
+    var first = !S.walls.length || S.wallsFromMedia;
+    S.wallsFromMedia = false;
     S.walls = list;
     if (first) S.wallIdx = 0;
     if (first && BG.mode === 'wall') showWall();
@@ -342,6 +373,7 @@
       S.media = d.enabled ? d : { enabled: false, movies: [], shows: [] };
       save('media', S.media);
       buildRows(true);
+      if (!S.walls.length) { var mw = mediaWalls(); if (mw.length) { setWalls(mw); S.wallsFromMedia = true; } }
     }).catch(function () { /* önbellek yeter */ });
   }
 
@@ -498,7 +530,7 @@
   // Satırı dikeyde, kutucuğu yatayda görünür tut
   function updateScroll() {
     var el = S.focus, rows = $('#rows');
-    if (!el || !rows.contains(el)) return;
+    if (TOUCH || !el || !rows.contains(el)) return;
     var rowEl = el.closest('.row');
     var all = $$('.row', rows), idx = all.indexOf(rowEl);
     all.forEach(function (r, i) { r.classList.toggle('past', i < idx); });
@@ -705,6 +737,11 @@
     var el = e.target.closest('.focusable');
     if (el) { setFocus(el); activate(el); }
   });
+  // Dokunmatikte uzun basma: üst sıraya ekle / çıkar
+  document.addEventListener('contextmenu', function (e) {
+    var el = e.target.closest('.tile');
+    if (el) { e.preventDefault(); toggleFav(el); }
+  });
 
   // ------------------------------------------------------------ çizim tahtası
   var board = $('#board'), bctx = board.getContext('2d');
@@ -874,8 +911,7 @@
       R.channel = ch;
     };
     if (R.cfg) go(R.cfg);
-    fetch(REMOTE_BASE + '/api/evtv/config')
-      .then(function (r) { return r.json(); })
+    fetchJson(REMOTE_BASE + '/api/evtv/config')
       .then(function (cfg) {
         if (cfg && cfg.url && cfg.key) {
           var first = !R.cfg;
@@ -973,6 +1009,7 @@
     },
     resumed: function () { poke(); loadApps(false); refreshConnect(); },
     appsChanged: function () { loadApps(true); },
+    httpResult: httpResult,
     serverEvent: function (json) {
       var ev;
       try { ev = JSON.parse(json); } catch (e) { return; }

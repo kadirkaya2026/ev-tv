@@ -93,6 +93,47 @@ public class Bridge {
         LocalServer.get(activity).resetAssistant();
     }
 
+    /** Dokunmatik ekran var mı (telefon/tablet)? */
+    @JavascriptInterface
+    public boolean isTouch() {
+        return activity.getPackageManager().hasSystemFeature("android.hardware.touchscreen");
+    }
+
+    /** CORS'suz GET; sonuç tv.httpResult(id, status, body) ile gelir. Yalnız https. */
+    @JavascriptInterface
+    public void httpGet(String url, String id) {
+        new Thread(() -> {
+            int status = 0;
+            String body = "";
+            if (url != null && url.startsWith("https://")) {
+                java.net.HttpURLConnection c = null;
+                try {
+                    c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                    c.setConnectTimeout(15000);
+                    c.setReadTimeout(20000);
+                    c.setRequestProperty("User-Agent", "EvTV");
+                    status = c.getResponseCode();
+                    java.io.InputStream in = status < 400 ? c.getInputStream() : c.getErrorStream();
+                    if (in != null) {
+                        java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream();
+                        byte[] buf = new byte[8192];
+                        int r;
+                        while ((r = in.read(buf)) > 0) b.write(buf, 0, r);
+                        in.close();
+                        body = b.toString("UTF-8");
+                    }
+                } catch (Exception e) {
+                    status = 0;
+                } finally {
+                    if (c != null) c.disconnect();
+                }
+            }
+            final String js = "window.tv && tv.httpResult(" + JSONObject.quote(id) + "," + status + ","
+                    + JSONObject.quote(body) + ")";
+            activity.runOnUiThread(() -> activity.js(js));
+        }, "evtv-http").start();
+    }
+
     @JavascriptInterface
     public String getVersion() {
         return Updater.currentVersion();
