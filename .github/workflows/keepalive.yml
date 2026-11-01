@@ -13,6 +13,6 @@ jobs:
     steps:
       - uses: actions/cache/restore@v4
         with:
-          path: ~/.android/debug.keystore
-          key: evtv-debug-keystore-v1
+          path: .evtv-signing
+          key: evtv-signing-v1
           fail-on-cache-miss: false

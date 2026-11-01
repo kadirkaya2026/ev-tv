@@ -24,14 +24,36 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
-      # İmza: Android debug anahtarı (v1.2'de sorunsuz kurulan tür). Anahtar dosyası
-      # Actions önbelleğinde saklanır; her sürüm aynı anahtarla imzalanır ki
-      # eskinin üzerine güncelleme olarak kurulsun. keepalive.yml önbelleği canlı tutar.
+      # Sabit imza anahtarı repoda YOK. İlk derlemede rastgele şifreyle üretilip Actions
+      # önbelleğinde saklanır (keepalive.yml 3 günde bir okuyarak canlı tutar).
       - name: İmza anahtarı önbelleği
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: evtv-debug-keystore-v1
+          path: .evtv-signing
+          key: evtv-signing-v1
+
+      - name: İmza anahtarını hazırla
+        run: |
+          mkdir -p .evtv-signing
+          if [ ! -f .evtv-signing/evtv-release.jks ]; then
+            openssl rand -hex 24 > .evtv-signing/pass
+            PASS=$(cat .evtv-signing/pass)
+            keytool -genkeypair -keystore .evtv-signing/evtv-release.jks -alias evtv \
+              -keyalg RSA -keysize 2048 -validity 36500 \
+              -storepass "$PASS" -keypass "$PASS" -dname "CN=Ev TV, C=TR"
+            echo "::notice::Yeni imza anahtarı oluşturuldu."
+          fi
+          PASS=$(cat .evtv-signing/pass)
+          echo "::add-mask::$PASS"
+          cp .evtv-signing/evtv-release.jks app/evtv-release.jks
+          echo "EVTV_KEY_PASS=$PASS" >> "$GITHUB_ENV"
+          FP=$(keytool -list -v -keystore app/evtv-release.jks -storepass "$PASS" -alias evtv | grep -m1 'SHA256:' | awk '{print $2}')
+          echo "İmza parmak izi: $FP"
+          # Kilit: parmak izi kayıtlıysa ve değiştiyse yayınlama (güncellemeler bozulmasın)
+          if [ -f .github/signing-sha256 ] && [ "$(tr -d ' \n' < .github/signing-sha256)" != "$FP" ]; then
+            echo "::error::İmza anahtarı değişti ($FP). Sürüm yayınlanmayacak."
+            exit 1
+          fi
 
       - name: APK derle
         run: gradle --no-daemon assembleRelease

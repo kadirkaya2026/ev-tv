@@ -46,7 +46,7 @@ adb install -r ev-tv.apk
 
 Yeni sürüm çıkınca ana ekranda **Güncellemeler** kartı "YENİ" etiketiyle görünür → **Şimdi Güncelle** → uygulama indirir → sistemin **Güncelle** onayına bas. Eski sürümün üzerine kurulur; favoriler, API anahtarı ve çizimler korunur. İlk seferde Android "bilinmeyen uygulamaları yükleme" izni ister; Ev TV'ye izin ver. İndirme/kurulum başarısız olursa tarayıcıyla indirmeye düşer.
 
-İmza: Android debug anahtarı, GitHub Actions önbelleğinde sabit tutulur (`keepalive.yml` 3 günde bir okuyarak silinmesini önler). Repoda 60 gün hiç işlem olmazsa GitHub zamanlanmış işleri durdurur; anahtar kaybolursa bir kez kaldırıp yeniden kurmak gerekir.
+İmza: sabit anahtar GitHub Actions önbelleğinde tutulur, parmak izi `.github/signing-sha256` ile kilitlidir (`keepalive.yml` 3 günde bir okuyarak silinmesini önler). Repoda 60 gün hiç işlem olmazsa GitHub zamanlanmış işleri durdurur; anahtar kaybolursa bir kez kaldırıp yeniden kurmak gerekir.
 
 ## 3. Ana ekran yap
 

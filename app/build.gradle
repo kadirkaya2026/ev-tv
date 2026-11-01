@@ -10,17 +10,28 @@ android {
         applicationId 'com.evim.tv'
         minSdk 26
         targetSdk 35
-        versionCode 8
-        versionName '1.7'
+        versionCode 9
+        versionName '1.8'
     }
 
-    // v1.2'de sorunsuz kurulan imza türü: Android debug anahtarı. Anahtar dosyası
-    // (~/.android/debug.keystore) GitHub Actions önbelleğinde saklanır, böylece her
-    // sürüm aynı anahtarla imzalanır ve eskinin üzerine güncelleme olarak kurulur.
+    // Sabit imza: her sürüm aynı anahtarla imzalanmalı ki eskinin üzerine kurulsun.
+    // Anahtar repoda YOK: GitHub Actions ilk derlemede rastgele şifreyle üretir,
+    // önbellekte saklar ve app/evtv-release.jks + EVTV_KEY_PASS olarak verir.
+    // CI ayrıca parmak izini .github/signing-sha256 ile karşılaştırır.
+    def evtvKeystore = file('evtv-release.jks')
+    signingConfigs {
+        evtv {
+            storeFile evtvKeystore
+            storePassword System.getenv('EVTV_KEY_PASS')
+            keyAlias 'evtv'
+            keyPassword System.getenv('EVTV_KEY_PASS')
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug
+            signingConfig evtvKeystore.exists() ? signingConfigs.evtv : signingConfigs.debug
         }
     }
 
