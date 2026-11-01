@@ -2,7 +2,6 @@ package com.evim.tv;
 
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
-import com.anthropic.core.JsonValue;
 import com.anthropic.errors.AnthropicServiceException;
 import com.anthropic.errors.UnauthorizedException;
 import com.anthropic.errors.RateLimitException;
@@ -29,7 +28,8 @@ import java.util.List;
  */
 final class Assistant {
 
-    private static final String MODEL = "claude-opus-5-5";
+    // En düşük maliyetli Claude modeli (kullanıcı isteği: az ücret)
+    private static final String MODEL = "claude-haiku-5-5";
     private static final int MAX_TURNS = 12;
     private static final String SYSTEM =
             "Sen evdeki bir televizyonda çalışan yardımcı asistansın. Kullanıcı ya kumandaya "
@@ -168,9 +168,7 @@ final class Assistant {
                     .system(SYSTEM)
                     // Sohbet için düşük efor yeterli ve hızlı
                     .outputConfig(OutputConfig.builder().effort(OutputConfig.Effort.LOW).build())
-                    // Güvenlik sınıflandırıcısı reddederse sunucu başka bir modelle tekrar dener
-                    .putAdditionalHeader("anthropic-beta", "server-side-fallback-2026-07-01")
-                    .putAdditionalBodyProperty("fallbacks", JsonValue.from("default"));
+                    ;
             int start = Math.max(0, history.size() - MAX_TURNS * 2);
             for (int i = start; i < history.size(); i++) {
                 Turn t = history.get(i);
