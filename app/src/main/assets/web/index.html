@@ -84,12 +84,12 @@
       <div class="connect-text">
         <h1>Telefonu Bağla</h1>
         <ol>
-          <li>Telefon TV kutusuyla <b>aynı Wi-Fi</b>'a bağlı olsun.</li>
-          <li>Kamerayla QR kodu okut.</li>
-          <li>Açılan sayfadan çiz, asistana sor, ayarları yap.</li>
+          <li>Kamerayla QR kodu okut (telefonun internete bağlı olması yeter).</li>
+          <li>Açılan sayfayı ana ekrana ekle; evde de dışarıda da çalışır.</li>
+          <li>Çiz, asistana sor. API anahtarını bir kez evden gir.</li>
         </ol>
         <p class="url" id="connectUrl"></p>
-        <p class="muted">Eşin de aynı QR'ı okutursa aynı tahtaya birlikte çizersiniz.</p>
+        <p class="muted">Eşin de aynı QR'ı okutursa aynı tahtaya birlikte çizersiniz — farklı şehirlerde olsanız bile.</p>
         <button class="btn focusable" data-action="home">Ana Ekran</button>
       </div>
     </div>
@@ -98,6 +98,7 @@
   <div id="toast" role="status"></div>
 
   <script src="qrcode.js"></script>
+  <script src="supabase.js"></script>
   <script src="tv.js"></script>
 </body>
 </html>

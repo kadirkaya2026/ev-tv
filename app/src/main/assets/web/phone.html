@@ -42,8 +42,11 @@
       <div class="card">
         <h2>Claude API anahtarı</h2>
         <p class="muted" id="keyState">Kontrol ediliyor…</p>
-        <input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…">
-        <button class="primary" id="saveKey">Kaydet</button>
+        <div id="keyForm">
+          <input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…">
+          <button class="primary" id="saveKey">Kaydet</button>
+        </div>
+        <p class="muted small" id="keyRemote" hidden>Güvenlik için anahtar internetten gönderilmez; TV ile <b>aynı Wi-Fi</b>'dayken <a id="lanLink" href="#">buraya dokunup</a> girebilirsin.</p>
         <p class="muted small">Anahtarı <b>console.anthropic.com</b> → API Keys bölümünden alabilirsin. Anahtar sadece TV kutusunda saklanır.</p>
       </div>
       <div class="card">

@@ -109,6 +109,33 @@ final class LocalServer {
         return o.toString();
     }
 
+    /** İnternet odasından (Supabase) gelen komutlar; TV arayüzü buraya iletir. */
+    void remoteCommand(String json) {
+        try {
+            JSONObject c = new JSONObject(json);
+            switch (c.optString("type")) {
+                case "stroke":
+                    handleStroke(c);
+                    break;
+                case "undo":
+                    handleUndo(c.optString("who"));
+                    break;
+                case "clear":
+                    clearBoard();
+                    break;
+                case "ask":
+                    askAsync(c.optString("text"));
+                    break;
+                case "chatReset":
+                    resetAssistant();
+                    break;
+                default:
+                    break;
+            }
+        } catch (JSONException ignored) {
+        }
+    }
+
     void clearBoard() {
         synchronized (this) {
             strokes.clear();

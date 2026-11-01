@@ -3,10 +3,15 @@
   'use strict';
   var $ = function (s) { return document.querySelector(s); };
 
-  // Erişim kodu QR'daki adresten gelir; sonraki açılışlar için saklanır.
+  // İki mod: TV kutusundan açılırsa ev ağı (HTTP + SSE), ekatalox.com/tv'den açılırsa
+  // internet odası (Supabase Realtime). Erişim kodu / oda kodu QR'daki adresten gelir.
+  var REMOTE = !!window.EVTV_REMOTE;
   var params = new URLSearchParams(location.search);
   var token = params.get('k') || store('k') || '';
   if (params.get('k')) store('k', params.get('k'));
+  var room = params.get('r') || store('r') || '';
+  if (params.get('r')) store('r', params.get('r'));
+  var lanUrl = store('lan') || '';
 
   var me = store('who') || ('p' + Math.random().toString(36).slice(2, 8));
   store('who', me);
@@ -29,6 +34,11 @@
         return j;
       });
     });
+  }
+
+  var LAN_PATH = { stroke: 'stroke', undo: 'undo', clear: 'clear', ask: 'ask', chatReset: 'chat/reset', config: 'config' };
+  function send(type, body) {
+    return REMOTE ? remoteSend(type, body) : api(LAN_PATH[type], body);
   }
 
   // ---------------------------------------------------------------- sekmeler
@@ -118,7 +128,7 @@
     if (!current || !pending.length) return;
     var body = { id: current.id, who: me, color: current.color, size: current.size, pts: pending };
     pending = [];
-    sending = sending.then(function () { return api('stroke', body); }).catch(function () { setStatus('bad', 'Bağlantı sorunu'); });
+    sending = sending.then(function () { return send('stroke', body); }).catch(function () { setStatus('bad', 'Bağlantı sorunu'); });
   }
 
   pad.addEventListener('pointerdown', function (e) {
@@ -146,12 +156,12 @@
     current.pts.push(p[0], p[1]);
     pending.push(p[0], p[1]);
     drawSeg(current, from);
-    if (!flushTimer) flushTimer = setTimeout(flush, 40);
+    if (!flushTimer) flushTimer = setTimeout(flush, REMOTE ? 80 : 40);
   }
 
-  $('#undo').addEventListener('click', function () { api('undo', { who: me }); });
+  $('#undo').addEventListener('click', function () { send('undo', { who: me }); });
   $('#clear').addEventListener('click', function () {
-    if (confirm('Tahta herkes için temizlensin mi?')) api('clear', {});
+    if (confirm('Tahta herkes için temizlensin mi?')) send('clear', {});
   });
 
   // ---------------------------------------------------------------- asistan
@@ -192,21 +202,28 @@
     askText.value = '';
     askText.style.height = 'auto';
     $('#askBtn').disabled = true;
-    api('ask', { text: text }).catch(function (err) {
+    send('ask', { text: text }).catch(function (err) {
       chat.push({ role: 'error', text: err.message });
       renderChat();
     }).then(function () { $('#askBtn').disabled = false; });
   });
-  $('#resetChat').addEventListener('click', function () { api('chat/reset', {}); });
+  $('#resetChat').addEventListener('click', function () { send('chatReset', {}); });
 
   // ---------------------------------------------------------------- ayarlar
   function showKeyState() {
-    $('#keyState').textContent = hasKey ? 'Anahtar kayıtlı ✓ (değiştirmek için yenisini yapıştır)' : 'Henüz anahtar girilmedi.';
+    $('#keyState').textContent = hasKey
+      ? 'Anahtar kayıtlı ✓' + (REMOTE ? '' : ' (değiştirmek için yenisini yapıştır)')
+      : 'Henüz anahtar girilmedi.';
+    if (REMOTE) {
+      $('#keyForm').hidden = true;
+      $('#keyRemote').hidden = false;
+      if (lanUrl) $('#lanLink').href = lanUrl;
+    }
   }
   $('#saveKey').addEventListener('click', function () {
     var k = $('#apiKey').value.trim();
     if (!k) return;
-    api('config', { apiKey: k }).then(function () {
+    send('config', { apiKey: k }).then(function () {
       $('#apiKey').value = '';
       hasKey = true; showKeyState();
       alert('Kaydedildi. Asistan hazır!');
@@ -232,7 +249,14 @@
         chat = (ev.chat || []).slice();
         thinking = !!ev.thinking;
         hasKey = !!ev.hasKey;
+        if (ev.lan) { lanUrl = ev.lan; store('lan', ev.lan); }
+        if (REMOTE) { gotState = true; setStatus('ok', 'TV\'ye bağlı (internet)'); }
         redraw(); renderChat(); showKeyState();
+        break;
+      case 'strokesBatch':
+        (ev.strokes || []).forEach(function (s) { strokes.set(s.id, s); });
+        if (current) strokes.set(current.id, current);
+        redraw();
         break;
       case 'stroke': {
         if (ev.who === me) return; // kendi çizgimiz zaten ekranda
@@ -257,7 +281,58 @@
     }
   }
 
+  // ---------------------------------------------------------------- internet odası
+  var channel = null, ready = false, gotState = false, helloTimer = null;
+
+  function remoteSend(type, body) {
+    if (!ready) return Promise.reject(new Error('TV\'ye bağlı değil'));
+    var payload = Object.assign({ type: type }, body || {});
+    return channel.send({ type: 'broadcast', event: 'cmd', payload: payload }).then(function (r) {
+      if (r !== 'ok') throw new Error('Gönderilemedi, tekrar dene');
+    });
+  }
+
+  function hello() {
+    clearTimeout(helloTimer);
+    if (!ready) return;
+    remoteSend('hello', {}).catch(function () { /* yok say */ });
+    helloTimer = setTimeout(function () {
+      if (!gotState) { setStatus('bad', 'TV kapalı ya da internete bağlı değil'); hello(); }
+    }, gotState ? 30000 : 6000);
+  }
+
+  function remoteConnect() {
+    if (!room) { setStatus('bad', 'TV\'deki QR\'ı okut'); return; }
+    fetch('/api/evtv/config').then(function (r) { return r.json(); }).then(function (cfg) {
+      var sb = window.supabase.createClient(cfg.url, cfg.key, {
+        auth: { persistSession: false, autoRefreshToken: false },
+        realtime: { params: { eventsPerSecond: 30 } }
+      });
+      channel = sb.channel('evtv-' + room, { config: { broadcast: { self: false } } });
+      channel.on('broadcast', { event: 'ev' }, function (m) { onEvent(m.payload || {}); });
+      channel.subscribe(function (status) {
+        if (status === 'SUBSCRIBED') {
+          ready = true; gotState = false;
+          setStatus('', 'TV aranıyor…');
+          hello();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          ready = false;
+          setStatus('bad', 'Yeniden bağlanıyor…');
+        }
+      });
+    }).catch(function () {
+      setStatus('bad', 'İnternet yok, tekrar deneniyor…');
+      setTimeout(remoteConnect, 5000);
+    });
+  }
+
+  // Uygulamaya geri dönülünce (telefon kilitten açılınca) durumu tazele
+  document.addEventListener('visibilitychange', function () {
+    if (REMOTE && !document.hidden && ready) { gotState = false; hello(); }
+  });
+
   function connect() {
+    if (REMOTE) { remoteConnect(); return; }
     if (!token) { setStatus('bad', 'TV\'deki QR\'ı okut'); return; }
     var es = new EventSource('/api/events?k=' + encodeURIComponent(token));
     es.onopen = function () { setStatus('ok', 'TV\'ye bağlı'); };

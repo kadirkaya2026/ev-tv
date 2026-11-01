@@ -68,3 +68,6 @@ main { flex: 1; min-height: 0; position: relative; }
   display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .tabs button span { font-size: 20px; }
 .tabs button.active { color: var(--text); }
+#keyForm { display: flex; flex-direction: column; gap: 10px; }
+#keyForm[hidden] { display: none; }
+a { color: var(--accent); }

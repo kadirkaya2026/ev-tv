@@ -13,10 +13,10 @@
 Apple TV tarzı bir ana ekran. İçinde üç şey var:
 
 - **Reklamsız ana ekran:** Yüklü uygulamalar büyük kartlar halinde, üstte cam görünümlü "favoriler" sırası, seçili uygulamanın bulanık arka planı ve saat.
-- **Ortak çizim tahtası:** TV'deki QR'ı telefonla okutun. İki telefondan aynı anda çizebilirsiniz, çizimler TV'de anında görünür.
+- **Ortak çizim tahtası:** TV'deki QR'ı telefonla okutun. İki telefondan aynı anda çizebilirsiniz, çizimler TV'de anında görünür. Aynı Wi-Fi şart değil; dışarıdan da çizilir.
 - **Claude asistanı:** Kumandanın mikrofon tuşuyla ya da telefondan soru sorulur, cevap TV'de çıkar.
 
-İnternet sadece asistan için gerekir. Çizim tahtası ev ağında (Wi-Fi) çalışır.
+Telefonlar `ekatalox.com/tv` sayfası üzerinden internetten bağlanır (Supabase Realtime). İnternet yoksa ev ağı (Wi-Fi) yöntemi yedek olarak çalışır.
 
 ## 1. APK'yı indir
 
@@ -61,14 +61,15 @@ adb install -r ev-tv.apk
 | Geri | Ana ekrana dön |
 | Mikrofon / Arama | Asistana sesli soru |
 
-**Telefonu bağla:** Ana ekranda **Telefonu Bağla** kartını aç ve QR'ı okut. Telefon kutuyla aynı Wi-Fi'da olmalı. Açılan sayfada üç sekme var:
+**Telefonu bağla:** Ana ekranda **Telefonu Bağla** kartını aç ve QR'ı okut. Telefonun internete bağlı olması yeter; sayfayı ana ekrana eklersen her yerden açarsın. Üç sekme var:
 - **Çiz:** Renk ve kalınlık seç, çiz. "Geri al" sadece senin son çizgini siler.
 - **Asistan:** Yaz ve gönder. Klavyedeki 🎤 ile sesli de yazabilirsin. Cevap TV'de de görünür.
-- **Ayarlar:** Claude API anahtarını buraya yapıştır. Anahtarı console.anthropic.com → API Keys'ten alırsın. Anahtar sadece kutuda saklanır.
+- **Ayarlar:** Claude API anahtarı. Güvenlik için internetten gönderilmez: TV ile aynı Wi-Fi'dayken Ayarlar'daki bağlantıya dokunup bir kez gir. Anahtarı console.anthropic.com → API Keys'ten alırsın; sadece kutuda saklanır.
 
 ## Güvenlik notları
 
-- Telefon sayfası rastgele bir erişim koduyla korunur. Kod QR'ın içindedir, yani QR'ı okutmayan biri bağlanamaz.
+- Her TV'nin rastgele, tahmin edilemez bir oda kodu var; kod QR'ın içinde. QR'ı okutmayan biri odaya giremez.
+- Ev ağı modunda da aynı kod erişim kodu olarak kullanılır.
 - Sunucu sadece ev ağında, 8765 portunda çalışır. Modeminde bu portu dışarı açma.
 - Asistan kullanımı API hesabından ücretlendirilir (model: Claude Opus 5.5, düşük efor).
 

@@ -46,6 +46,7 @@ public class Bridge {
         JSONObject o = new JSONObject();
         try {
             o.put("url", s.phoneUrl());
+            o.put("room", Store.token(activity));
             o.put("hasKey", Store.hasApiKey(activity));
         } catch (JSONException ignored) {
         }
@@ -56,6 +57,12 @@ public class Bridge {
     @JavascriptInterface
     public String getState() {
         return LocalServer.get(activity).stateJson();
+    }
+
+    /** İnternet üzerinden bağlanan telefonların komutları (JSON). */
+    @JavascriptInterface
+    public void remoteCmd(String json) {
+        LocalServer.get(activity).remoteCommand(json);
     }
 
     @JavascriptInterface

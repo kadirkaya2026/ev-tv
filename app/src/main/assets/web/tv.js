@@ -526,7 +526,80 @@
     qr.make();
     var svg = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
     $$('[data-qr]').forEach(function (el) { el.innerHTML = svg; });
-    $('#connectUrl').textContent = S.url.replace(/\?k=.*/, '');
+    $('#connectUrl').textContent = S.url.replace(/^https?:\/\//, '').replace(/\?.*/, '');
+  }
+
+  // ------------------------------------------------------------ internet odası (Supabase Realtime)
+  // Telefonlar ekatalox.com/tv?r=ODA sayfasından bu odaya bağlanır; ev ağı şart değil.
+  // TV tek doğruluk kaynağıdır: telefonlar "cmd" gönderir, TV işleyip sonucu "ev" ile yayınlar.
+  var REMOTE_BASE = 'https://ekatalox.com';
+  var R = { channel: null, room: '', ready: false, cfg: load('sbcfg', null), retry: null };
+  var RELAY = { stroke: 1, remove: 1, clear: 1, chat: 1, chatError: 1, thinking: 1, chatReset: 1, config: 1 };
+
+  function updateQrUrl() {
+    S.url = (R.cfg && R.room) ? REMOTE_BASE + '/tv?r=' + R.room : S.lanUrl;
+    renderQrs();
+  }
+
+  function startRemote() {
+    if (!A || !R.room || R.channel || !window.supabase) return;
+    var go = function (cfg) {
+      if (R.channel || !cfg || !cfg.url || !cfg.key) return;
+      var sb = window.supabase.createClient(cfg.url, cfg.key, {
+        auth: { persistSession: false, autoRefreshToken: false },
+        realtime: { params: { eventsPerSecond: 50 } }
+      });
+      var ch = sb.channel('evtv-' + R.room, { config: { broadcast: { self: false } } });
+      ch.on('broadcast', { event: 'cmd' }, function (m) { onRemoteCmd(m.payload || {}); });
+      ch.subscribe(function (status) {
+        R.ready = status === 'SUBSCRIBED';
+        if (R.ready) sendState();
+      });
+      R.channel = ch;
+    };
+    if (R.cfg) go(R.cfg);
+    fetch(REMOTE_BASE + '/api/evtv/config')
+      .then(function (r) { return r.json(); })
+      .then(function (cfg) {
+        if (cfg && cfg.url && cfg.key) {
+          var first = !R.cfg;
+          R.cfg = cfg; save('sbcfg', cfg);
+          if (first) updateQrUrl();
+          go(cfg);
+        }
+      })
+      .catch(function () {
+        clearTimeout(R.retry);
+        R.retry = setTimeout(startRemote, 30000);
+      });
+  }
+
+  function relay(ev) {
+    if (!R.ready) return;
+    R.channel.send({ type: 'broadcast', event: 'ev', payload: ev });
+  }
+
+  function onRemoteCmd(c) {
+    if (c.type === 'hello') sendState();
+    else if (A) A.remoteCmd(JSON.stringify(c));
+  }
+
+  // Durumu parça parça gönder (tek mesajı küçük tutmak için)
+  function sendState() {
+    if (!A || !R.ready) return;
+    var st;
+    try { st = JSON.parse(A.getState()); } catch (e) { return; }
+    var strokes = st.strokes || [];
+    st.strokes = [];
+    st.lan = S.lanUrl;
+    relay(st);
+    var batch = [], size = 0;
+    strokes.forEach(function (s) {
+      batch.push(s);
+      size += (s.pts ? s.pts.length : 0) * 8 + 80;
+      if (size > 60000) { relay({ type: 'strokesBatch', strokes: batch }); batch = []; size = 0; }
+    });
+    if (batch.length) relay({ type: 'strokesBatch', strokes: batch });
   }
 
   // ------------------------------------------------------------ saat
@@ -546,7 +619,12 @@
     home: function () { show('home'); setFocus($('#dock').firstElementChild); },
     resumed: function () { loadApps(false); refreshConnect(); },
     appsChanged: function () { loadApps(true); },
-    serverEvent: function (json) { try { onEvent(JSON.parse(json)); } catch (e) { /* yok say */ } },
+    serverEvent: function (json) {
+      var ev;
+      try { ev = JSON.parse(json); } catch (e) { return; }
+      onEvent(ev);
+      if (RELAY[ev.type]) relay(ev);
+    },
     voiceResult: function (text) {
       if (text === null) toast('Bu cihazda ses tanıma yok. Telefondan yazabilirsin.');
       else if (text) A && A.ask(text);
@@ -557,12 +635,14 @@
     if (A) {
       try {
         var info = JSON.parse(A.getConnectInfo());
-        S.url = info.url; S.hasKey = !!info.hasKey;
+        S.lanUrl = info.url; R.room = info.room || ''; S.hasKey = !!info.hasKey;
       } catch (e) { /* yok say */ }
     } else {
-      S.url = 'http://192.168.1.50:8765/?k=onizleme';
+      S.lanUrl = 'http://192.168.1.50:8765/?k=onizleme';
+      R.room = 'onizleme'; R.cfg = R.cfg || { preview: true };
     }
-    renderQrs();
+    updateQrUrl();
+    startRemote();
   }
 
   // ------------------------------------------------------------ başlat
