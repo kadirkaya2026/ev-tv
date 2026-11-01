@@ -1024,6 +1024,7 @@
       if (d.error) { $('#updMsg').textContent = d.error; return; }
       var had = S.update && S.update.newer;
       S.update = d;
+      $('#updMsg').textContent = d.newer ? '' : 'Kontrol edildi ✓';
       renderUpdate();
       if (d.newer && !had) {
         buildRows(true);
