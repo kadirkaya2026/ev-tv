@@ -21,11 +21,9 @@ final class Commands {
 
     private static final Locale TR = new Locale("tr", "TR");
     private static final Pattern OPEN_VERB = Pattern.compile(
-            "\\b(aç|ac|açar|açsana|açabilir|başlat|baslat|çalıştır|calistir|gir|oynat)\\b",
-            Pattern.UNICODE_CHARACTER_CLASS);
+            "(?<![\\p{L}\\p{N}])(aç|ac|açar|açsana|açabilir|başlat|baslat|çalıştır|calistir|gir|oynat)(?![\\p{L}\\p{N}])");
     private static final Pattern YT_SEARCH = Pattern.compile(
-            "(?:youtube|yutup|you tube)\\s*(?:'|’)?\\s*(?:da|de|ta|te|dan|den)\\s+(.+?)\\s+(?:aç|ac|ara|oynat|izle|bul|göster|goster)\\b",
-            Pattern.UNICODE_CHARACTER_CLASS);
+            "(?:youtube|yutup|you tube)\\s*(?:'|’)?\\s*(?:da|de|ta|te|dan|den)\\s+(.+?)\\s+(?:aç|ac|ara|oynat|izle|bul|göster|goster)(?![\\p{L}\\p{N}])");
 
     private Commands() {
     }

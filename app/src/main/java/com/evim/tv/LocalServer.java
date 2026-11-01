@@ -161,13 +161,26 @@ final class LocalServer {
         Speaker.stop();
         try {
             // Önce komut mu? ("Netflix'i aç") — yapay zekaya gitmeden yapılır
-            String answer = Commands.tryHandle(ctx, q);
+            String answer = null;
+            try {
+                answer = Commands.tryHandle(ctx, q);
+            } catch (Throwable t) {
+                // Komut tanıma hiçbir zaman uygulamayı çökertmesin; yapay zekaya sor
+                answer = null;
+            }
             if (answer == null) answer = assistant.ask(Store.apiKey(ctx), q);
             broadcast(event("chat", "assistant", answer));
-            Speaker.speak(ctx, answer);
+            try {
+                Speaker.speak(ctx, answer);
+            } catch (Throwable ignored) {
+                // Sesli okuma yoksa sessiz devam
+            }
             return answer;
         } catch (IllegalStateException e) {
             broadcast(event("chatError", "error", e.getMessage()));
+            return null;
+        } catch (Throwable t) {
+            broadcast(event("chatError", "error", "Beklenmeyen hata: " + t.getClass().getSimpleName()));
             return null;
         } finally {
             thinking = false;
