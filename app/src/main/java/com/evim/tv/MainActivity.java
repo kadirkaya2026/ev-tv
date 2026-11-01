@@ -69,6 +69,10 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 pageReady = true;
+                if (pendingVoice) {
+                    pendingVoice = false;
+                    js("window.tv && tv.key('voice')");
+                }
             }
         });
         web.addJavascriptInterface(new Bridge(this), "Android");
@@ -83,6 +87,8 @@ public class MainActivity extends Activity {
         server.start();
 
         InstallReceiver.ui = this;
+        Speaker.init(this);
+        pendingVoice = isVoiceIntent(getIntent());
 
         IntentFilter f = new IntentFilter();
         f.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -105,7 +111,20 @@ public class MainActivity extends Activity {
         // Ana ekran açıkken Home tuşuna basıldı: ana sayfaya dön
         if (Intent.ACTION_MAIN.equals(intent.getAction())) {
             js("window.tv && tv.home()");
+        } else if (isVoiceIntent(intent)) {
+            js("window.tv && tv.key('voice')");
         }
+    }
+
+    private boolean pendingVoice = false;
+
+    /** Kumandanın asistan/mikrofon tuşu sistem tarafından bize yönlendirildiyse */
+    private static boolean isVoiceIntent(Intent i) {
+        if (i == null || i.getAction() == null) return false;
+        String a = i.getAction();
+        return Intent.ACTION_ASSIST.equals(a) || Intent.ACTION_VOICE_COMMAND.equals(a)
+                || Intent.ACTION_SEARCH_LONG_PRESS.equals(a)
+                || "android.speech.action.VOICE_SEARCH_HANDS_FREE".equals(a);
     }
 
     @Override
@@ -134,6 +153,7 @@ public class MainActivity extends Activity {
             case KeyEvent.KEYCODE_SEARCH:
             case KeyEvent.KEYCODE_VOICE_ASSIST:
             case KeyEvent.KEYCODE_ASSIST:
+            case KeyEvent.KEYCODE_BUTTON_Y:
                 name = "voice";
                 break;
             default:

@@ -158,9 +158,13 @@ final class LocalServer {
     private String askBlocking(String q) {
         thinking = true;
         broadcast(event("chat", "user", q));
+        Speaker.stop();
         try {
-            String answer = assistant.ask(Store.apiKey(ctx), q);
+            // Önce komut mu? ("Netflix'i aç") — yapay zekaya gitmeden yapılır
+            String answer = Commands.tryHandle(ctx, q);
+            if (answer == null) answer = assistant.ask(Store.apiKey(ctx), q);
             broadcast(event("chat", "assistant", answer));
+            Speaker.speak(ctx, answer);
             return answer;
         } catch (IllegalStateException e) {
             broadcast(event("chatError", "error", e.getMessage()));

@@ -30,6 +30,14 @@ final class Store {
         p(c).edit().putString("apiKey", key == null ? "" : key.trim()).apply();
     }
 
+    static boolean ttsOn(Context c) {
+        return p(c).getBoolean("tts", true);
+    }
+
+    static void setTts(Context c, boolean on) {
+        p(c).edit().putBoolean("tts", on).apply();
+    }
+
     /** Telefon sayfasının kullandığı gizli kod (QR içinde). İlk açılışta üretilir. */
     static synchronized String token(Context c) {
         String t = p(c).getString("token", null);

@@ -572,7 +572,7 @@
     }
     if (panel && BG.mode !== 'wall') showWall();
     if (name === 'draw') boardChanged();
-    if (name === 'assistant') renderChat();
+    if (name === 'assistant') { renderChat(); renderTts(); }
     if (name === 'update') { renderUpdate(); checkUpdate(); }
     if (name !== 'detail') setFocus($('#' + name + ' .focusable'));
   }
@@ -642,6 +642,11 @@
       startVoice();
     } else if (action === 'resetChat') {
       if (A) A.resetAssistant(); else onEvent({ type: 'chatReset' });
+    } else if (action === 'toggleTts') {
+      var on = !(A && A.getTts ? A.getTts() : S.tts !== false);
+      if (A && A.setTts) A.setTts(on); else S.tts = on;
+      renderTts();
+      toast(on ? 'Cevaplar sesli okunacak' : 'Sesli cevap kapatıldı');
     } else if (action === 'checkUpdate') {
       $('#updMsg').textContent = 'Kontrol ediliyor…';
       checkUpdate();
@@ -956,6 +961,11 @@
     if (batch.length) relay({ type: 'strokesBatch', strokes: batch });
   }
 
+
+  function renderTts() {
+    var on = A && A.getTts ? A.getTts() : S.tts !== false;
+    $('#ttsBtn').textContent = on ? '🔊  Sesli cevap: Açık' : '🔇  Sesli cevap: Kapalı';
+  }
 
   // ------------------------------------------------------------ güncellemeler
   function checkUpdate() {

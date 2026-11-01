@@ -135,6 +135,17 @@ public class Bridge {
     }
 
     @JavascriptInterface
+    public boolean getTts() {
+        return Store.ttsOn(activity);
+    }
+
+    @JavascriptInterface
+    public void setTts(boolean on) {
+        Store.setTts(activity, on);
+        if (!on) Speaker.stop();
+    }
+
+    @JavascriptInterface
     public String getVersion() {
         return Updater.currentVersion();
     }
