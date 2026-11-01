@@ -179,7 +179,7 @@
     if (!chat.length && !thinking) {
       html = '<div class="empty">' + (hasKey
         ? 'Sorunu yaz, cevap hem burada hem TV\'de görünsün.'
-        : 'Önce <b>Ayarlar</b> sekmesinden Claude API anahtarını gir.') + '</div>';
+        : 'Önce <b>Ayarlar</b> sekmesinden ChatGPT API anahtarını gir.') + '</div>';
     }
     chat.forEach(function (m) { html += '<div class="msg ' + m.role + '">' + esc(m.text) + '</div>'; });
     if (thinking) html += '<div class="msg assistant typing">Düşünüyor…</div>';

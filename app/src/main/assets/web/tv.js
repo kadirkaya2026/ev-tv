@@ -60,7 +60,7 @@
 
   var BUILTIN = {
     draw: { label: 'Çizim Tahtası', kicker: 'Birlikte çizin', sub: 'Telefonlarınızdan çizdiğiniz her çizgi burada anında görünür.' },
-    assistant: { label: 'Asistan', kicker: 'Claude ile', sub: 'Film önerisi, tarif, merak ettiğin her şey. Mikrofon tuşuna bas ya da telefondan yaz.' },
+    assistant: { label: 'Asistan', kicker: 'Yapay zeka', sub: 'Film önerisi, tarif, merak ettiğin her şey. Mikrofon tuşuna bas ya da telefondan yaz.' },
     connect: { label: 'Telefonu Bağla', kicker: 'Ev ağı', sub: 'QR kodu okut; telefonun çizim kalemi, klavye ve ayar ekranı olsun.' },
     settings: { label: 'Ayarlar', kicker: 'Sistem', sub: 'Wi-Fi, ses, görüntü ve diğer Android ayarları.' },
     update: { label: 'Güncellemeler', kicker: 'Ev TV', sub: 'Yeni sürüm çıktığında tek tuşla, silmeden güncelle.' }
@@ -469,7 +469,7 @@
       if (kind === 'assistant') {
         var last = S.chat.filter(function (m) { return m.role === 'assistant'; }).pop();
         if (last) sub = '“' + last.text + '”';
-        else if (!S.hasKey) sub = 'Kurulum: Telefonu Bağla → Ayarlar sekmesinde Claude API anahtarını gir.';
+        else if (!S.hasKey) sub = 'Kurulum: Telefonu Bağla → Ayarlar sekmesinde ChatGPT API anahtarını gir.';
       }
       if (kind === 'update' && S.update) {
         sub = S.update.newer ? 'Yeni sürüm hazır: v' + S.update.latest + ' (yüklü: v' + S.update.current + '). Açmak için OK.'
