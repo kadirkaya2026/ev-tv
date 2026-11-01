@@ -7,42 +7,41 @@
   <link rel="stylesheet" href="tv.css">
 </head>
 <body>
-  <!-- Arka plan: odaklanan uygulamanın bulanık görseli + yumuşak renk lekeleri -->
-  <div id="wallpaper" aria-hidden="true">
-    <div class="wp-layer" id="wpA"></div>
-    <div class="wp-layer" id="wpB"></div>
-    <div class="wp-blob wp-1"></div>
-    <div class="wp-blob wp-2"></div>
-    <div class="wp-blob wp-3"></div>
-    <div class="wp-shade"></div>
+  <!-- Arka plan: hareketli 4K manzaralar / seçili yapımın sahne görseli -->
+  <div id="bg" aria-hidden="true">
+    <div class="bg-layer" id="bgA"></div>
+    <div class="bg-layer" id="bgB"></div>
+    <div class="bg-shade"></div>
   </div>
 
-  <div class="clock" id="clock"><span id="time">--:--</span><span id="date"></span></div>
+  <div class="clock" id="clock"><span id="time">--:--</span></div>
+  <div class="credit" id="credit"></div>
 
   <!-- ANA EKRAN -->
   <section id="home" class="screen active">
-    <div id="homeScroller">
-      <div class="shelf" id="shelf">
-        <div class="shelf-text">
-          <div class="shelf-kicker" id="shelfKicker"></div>
-          <h1 class="shelf-title" id="shelfTitle">Hoş geldin</h1>
-          <p class="shelf-sub" id="shelfSub"></p>
-        </div>
-        <div class="shelf-side" id="shelfSide"></div>
-      </div>
+    <div class="hero" id="hero">
+      <div class="hero-kicker" id="heroKicker"></div>
+      <h1 class="hero-title" id="heroTitle"></h1>
+      <div class="hero-meta" id="heroMeta"></div>
+      <p class="hero-sub" id="heroSub"></p>
+    </div>
+    <div class="rows" id="rows"></div>
+  </section>
 
-      <div class="dock"><div class="dock-track" id="dock"></div></div>
-
-      <div class="grid-wrap">
-        <h2 class="row-title">Tüm Uygulamalar</h2>
-        <div class="grid" id="grid"></div>
-        <p class="hint">İpucu: Bir uygulamada <b>OK</b>'a basılı tut ya da <b>Menü</b> tuşuna bas → üst sıraya ekle / çıkar</p>
-      </div>
+  <!-- YAPIM DETAYI -->
+  <section id="detail" class="screen">
+    <div class="detail">
+      <div class="hero-kicker" id="dKicker"></div>
+      <h1 class="detail-title" id="dTitle"></h1>
+      <div class="hero-meta" id="dMeta"></div>
+      <p class="detail-sub" id="dSub"></p>
+      <div class="detail-actions" id="dActions"></div>
+      <p class="detail-note" id="dNote"></p>
     </div>
   </section>
 
   <!-- ÇİZİM TAHTASI -->
-  <section id="draw" class="screen">
+  <section id="draw" class="screen panel-screen">
     <div class="screen-head">
       <h1>Çizim Tahtası</h1>
       <p>Telefonlarınızdan çizin, burada anında görünsün.</p>
@@ -60,7 +59,7 @@
   </section>
 
   <!-- ASİSTAN -->
-  <section id="assistant" class="screen">
+  <section id="assistant" class="screen panel-screen">
     <div class="screen-head">
       <h1>Asistan</h1>
       <p>Kumandanın mikrofon tuşuna bas ya da telefondan yaz.</p>
@@ -68,9 +67,9 @@
     <div class="assist-layout">
       <div class="chat" id="chat"></div>
       <aside class="side-panel">
-        <div class="notice" id="keyNotice" hidden>Asistan için Claude API anahtarı gerekli. QR'ı okut → <b>Ayarlar</b> sekmesine anahtarını yapıştır.</div>
+        <div class="notice" id="keyNotice" hidden>Asistan için Claude API anahtarı gerekli. QR'ı okut → <b>Ayarlar</b>.</div>
         <div class="qr-card"><div class="qr" data-qr></div><span>Telefondan soru sor</span></div>
-        <button class="btn focusable primary" data-action="voice">🎤  Konuş</button>
+        <button class="btn focusable" data-action="voice">🎤  Konuş</button>
         <button class="btn focusable" data-action="resetChat">Yeni Sohbet</button>
         <button class="btn focusable" data-action="home">Ana Ekran</button>
       </aside>
@@ -78,7 +77,7 @@
   </section>
 
   <!-- TELEFON BAĞLA -->
-  <section id="connect" class="screen">
+  <section id="connect" class="screen panel-screen">
     <div class="connect">
       <div class="qr-card big"><div class="qr" data-qr></div></div>
       <div class="connect-text">
@@ -90,10 +89,16 @@
         </ol>
         <p class="url" id="connectUrl"></p>
         <p class="muted">Eşin de aynı QR'ı okutursa aynı tahtaya birlikte çizersiniz — farklı şehirlerde olsanız bile.</p>
-        <button class="btn focusable" data-action="home">Ana Ekran</button>
+        <button class="btn focusable inline" data-action="home">Ana Ekran</button>
       </div>
     </div>
   </section>
+
+  <!-- EKRAN KORUYUCU -->
+  <div id="saver" aria-hidden="true">
+    <div class="saver-clock" id="saverTime"></div>
+    <div class="saver-date" id="saverDate"></div>
+  </div>
 
   <div id="toast" role="status"></div>
 

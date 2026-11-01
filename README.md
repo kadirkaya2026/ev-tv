@@ -10,9 +10,11 @@
 
 > Ekran görüntüleri örnek verilerle çekildi; kutunda kendi uygulamaların görünür.
 
-Apple TV tarzı bir ana ekran. İçinde üç şey var:
+Apple TV tarzı sinematik bir ana ekran:
 
-- **Reklamsız ana ekran:** Yüklü uygulamalar büyük kartlar halinde, üstte cam görünümlü "favoriler" sırası, seçili uygulamanın bulanık arka planı ve saat.
+- **Reklamsız ana ekran:** Arkada yavaşça kayıp yakınlaşan 4K manzaralar (her gün yenileri), üstte favori uygulamaların, altta tüm uygulamalar.
+- **Film ve dizi rafları:** Türkiye'de bu hafta popüler filmler/diziler. Üzerine gelince arka plan o yapımın sahne görseline geçer; detayda fragman (YouTube), "Netflix'te Aç" gibi yüklü platform düğmeleri ve "Asistana Sor".
+- **Ekran koruyucu:** 5 dakika dokunulmazsa saatli manzara gösterisi.
 - **Ortak çizim tahtası:** TV'deki QR'ı telefonla okutun. İki telefondan aynı anda çizebilirsiniz, çizimler TV'de anında görünür. Aynı Wi-Fi şart değil; dışarıdan da çizilir.
 - **Claude asistanı:** Kumandanın mikrofon tuşuyla ya da telefondan soru sorulur, cevap TV'de çıkar.
 
@@ -65,6 +67,14 @@ adb install -r ev-tv.apk
 - **Çiz:** Renk ve kalınlık seç, çiz. "Geri al" sadece senin son çizgini siler.
 - **Asistan:** Yaz ve gönder. Klavyedeki 🎤 ile sesli de yazabilirsin. Cevap TV'de de görünür.
 - **Ayarlar:** Claude API anahtarı. Güvenlik için internetten gönderilmez: TV ile aynı Wi-Fi'dayken Ayarlar'daki bağlantıya dokunup bir kez gir. Anahtarı console.anthropic.com → API Keys'ten alırsın; sadece kutuda saklanır.
+
+## Film rafları için TMDB anahtarı
+
+Film/dizi rafları [TMDB](https://www.themoviedb.org)'den gelir (ücretsiz):
+1. themoviedb.org'da hesap aç → Ayarlar → **API** → "API Key" iste (kişisel kullanım).
+2. Vercel → ekatalox projesi → Settings → Environment Variables → `TMDB_API_KEY` = anahtar (v3 anahtarı ya da v4 okuma belirteci) → yeniden yayınla.
+
+Anahtar yoksa raflar görünmez; ana ekranın geri kalanı normal çalışır.
 
 ## Güvenlik notları
 

@@ -28,6 +28,18 @@ public class Bridge {
         return AppRepository.launch(activity, pkg);
     }
 
+    /** Bağlantıyı uygun uygulamada aç (ör. YouTube fragmanı). */
+    @JavascriptInterface
+    public boolean openUrl(String url) {
+        try {
+            activity.startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return true;
+        } catch (ActivityNotFoundException | SecurityException e) {
+            return false;
+        }
+    }
+
     @JavascriptInterface
     public void openSettings() {
         activity.runOnUiThread(() -> {

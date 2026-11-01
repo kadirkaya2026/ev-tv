@@ -1,4 +1,4 @@
-/* Ev TV arayüzü: kumanda ile gezinme, uygulamalar, çizim tahtası, asistan. */
+/* Ev TV arayüzü: sinematik ana ekran, film rafları, çizim tahtası, asistan, kumanda ile gezinme. */
 (function () {
   'use strict';
 
@@ -17,7 +17,13 @@
     chat: [],
     thinking: false,
     hasKey: false,
-    url: ''
+    url: '',
+    lanUrl: '',
+    walls: [],
+    wallIdx: 0,
+    media: { enabled: false, movies: [], shows: [] },
+    details: {},
+    detailItem: null
   };
 
   // ------------------------------------------------------------ yardımcılar
@@ -54,8 +60,19 @@
     connect: { label: 'Telefonu Bağla', kicker: 'Ev ağı', sub: 'QR kodu okut; telefonun çizim kalemi, klavye ve ayar ekranı olsun.' },
     settings: { label: 'Ayarlar', kicker: 'Sistem', sub: 'Wi-Fi, ses, görüntü ve diğer Android ayarları.' }
   };
+  BUILTIN.connect.kicker = 'Her yerden';
+  BUILTIN.connect.sub = 'QR kodu okut; telefonun çizim kalemi, klavye ve ayar ekranı olsun.';
+
+  var REMOTE_BASE = 'https://ekatalox.com';
+  var IDLE_MS = 5 * 60 * 1000; // ekran koruyucu
+
+  function fetchJson(url) {
+    return fetch(url).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+  }
 
   // ------------------------------------------------------------ önizleme verisi (tarayıcıda)
+  function svgUri(svg) { return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg); }
+
   function mockApps() {
     var list = [
       ['Video Dünyası', '#e50914', '#831010'], ['Müzik', '#1db954', '#0b5e2c'], ['Sinema+', '#0f79af', '#09324d'],
@@ -65,8 +82,37 @@
     ];
     return list.map(function (a, i) {
       var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + a[1] + '"/><stop offset="1" stop-color="' + a[2] + '"/></linearGradient></defs><rect width="320" height="180" fill="url(#g)"/><text x="160" y="102" font-family="Helvetica,Arial" font-size="30" font-weight="700" fill="white" text-anchor="middle">' + a[0] + '</text></svg>';
-      return { pkg: 'demo.app' + i, label: a[0], tv: true, banner: 'data:image/svg+xml;utf8,' + encodeURIComponent(svg) };
+      return { pkg: 'demo.app' + i, label: a[0], tv: true, banner: svgUri(svg) };
     });
+  }
+
+  function landscape(sky1, sky2, m1, m2, m3, sun) {
+    return svgUri('<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + sky1 + '"/><stop offset="1" stop-color="' + sky2 + '"/></linearGradient><radialGradient id="g" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="' + sun + '" stop-opacity="0.9"/><stop offset="1" stop-color="' + sun + '" stop-opacity="0"/></radialGradient></defs>' +
+      '<rect width="1920" height="1080" fill="url(#s)"/><circle cx="1350" cy="520" r="420" fill="url(#g)"/><circle cx="1350" cy="520" r="70" fill="' + sun + '"/>' +
+      '<path d="M0 700 L260 470 L520 640 L820 400 L1120 620 L1420 450 L1700 600 L1920 520 L1920 1080 L0 1080Z" fill="' + m1 + '"/>' +
+      '<path d="M0 820 L340 640 L640 780 L980 600 L1300 790 L1600 660 L1920 760 L1920 1080 L0 1080Z" fill="' + m2 + '"/>' +
+      '<path d="M0 940 L420 820 L860 930 L1260 840 L1920 960 L1920 1080 L0 1080Z" fill="' + m3 + '"/></svg>');
+  }
+  function mockWalls() {
+    return [
+      { hd: landscape('#1b2a4a', '#f2a65a', '#3b3f63', '#262844', '#14152a', '#ffd9a0'), credit: 'Önizleme manzarası — gerçek cihazda 4K fotoğraflar gelir' },
+      { hd: landscape('#0b3d5c', '#7fc8d8', '#2f5d62', '#1e3f44', '#0f2426', '#ffffff'), credit: 'Önizleme manzarası' },
+      { hd: landscape('#2a1145', '#ff7b54', '#4a2a5e', '#2c1a3d', '#160d20', '#ffe0b0'), credit: 'Önizleme manzarası' }
+    ];
+  }
+  function mockMedia() {
+    var cols = [['#5b1f45', '#ff375f'], ['#0b3d5c', '#64d2ff'], ['#2a1145', '#bf5af2'], ['#3b2a10', '#ff9f0a'], ['#0e3b2a', '#30d158'], ['#1b2a4a', '#5e5ce6']];
+    function mk(type, n) {
+      return cols.map(function (c, i) {
+        var art = landscape(c[0], c[1], '#1c1c24', '#111118', '#08080c', '#ffffff');
+        return {
+          id: i + n, type: type, title: (type === 'movie' ? 'Örnek Film ' : 'Örnek Dizi ') + (i + 1),
+          overview: 'Bu bir önizleme açıklamasıdır. Gerçek cihazda bu hafta Türkiye\'de en çok ilgi gören yapımlar, Türkçe özetleri ve 4K sahne görselleriyle burada görünür.',
+          year: '2026', rating: (7 + i / 4).toFixed(1), backdrop: art, card: art
+        };
+      });
+    }
+    return { enabled: true, movies: mk('movie', 0), shows: mk('tv', 100) };
   }
 
   function fetchApps() {
@@ -84,7 +130,7 @@
         if (picks.length < 6 && a.pkg.toLowerCase().indexOf(p) >= 0 && picks.indexOf(a.pkg) < 0) picks.push(a.pkg);
       });
     });
-    apps.forEach(function (a) { if (picks.length < 4 && a.tv && picks.indexOf(a.pkg) < 0) picks.push(a.pkg); });
+    apps.forEach(function (a) { if (picks.length < 5 && a.tv && picks.indexOf(a.pkg) < 0) picks.push(a.pkg); });
     return picks;
   }
 
@@ -93,55 +139,96 @@
     return null;
   }
 
-  function tileHtml(kind, data) {
+  function appTile(kind, data) {
+    var el = document.createElement('div');
+    el.className = 'tile app focusable';
+    el.dataset.kind = kind;
     var art, label;
     if (kind === 'app') {
+      el.dataset.pkg = data.pkg;
       label = data.label;
       if (data.banner) art = '<div class="art"><img class="banner" src="' + data.banner + '" alt=""></div>';
       else if (data.icon) art = '<div class="art"><img class="icon" src="' + data.icon + '" alt=""></div>';
-      else art = '<div class="art"><span style="font-size:2rem;font-weight:700">' + esc(data.label.charAt(0)) + '</span></div>';
+      else art = '<div class="art"><span class="letter">' + esc(data.label.charAt(0)) + '</span></div>';
+      if (S.favs.indexOf(data.pkg) >= 0) el.classList.add('is-fav');
     } else {
       label = BUILTIN[kind].label;
       art = '<div class="art c-' + kind + '">' + GLYPHS[kind] + '</div>';
     }
-    return art + '<div class="fav-dot"></div><div class="label">' + esc(label) + '</div>';
-  }
-
-  function makeTile(kind, data) {
-    var el = document.createElement('div');
-    el.className = 'tile focusable';
-    el.dataset.kind = kind;
-    if (data) el.dataset.pkg = data.pkg;
-    el.innerHTML = tileHtml(kind, data);
-    if (data && S.favs.indexOf(data.pkg) >= 0) el.classList.add('is-fav');
+    el.innerHTML = art + '<div class="fav-dot"></div><div class="label">' + esc(label) + '</div>';
     return el;
   }
 
-  function renderHome(keepFocus) {
-    var prev = S.focus && S.focus.dataset ? { kind: S.focus.dataset.kind, pkg: S.focus.dataset.pkg, inDock: $('#dock').contains(S.focus) } : null;
-    var dock = $('#dock'), grid = $('#grid');
-    dock.innerHTML = '';
-    grid.innerHTML = '';
+  function mediaTile(item, list, idx) {
+    var el = document.createElement('div');
+    el.className = 'tile media focusable';
+    el.dataset.kind = 'media';
+    el.dataset.list = list;
+    el.dataset.idx = idx;
+    el.dataset.mid = item.type + item.id;
+    el.innerHTML = '<div class="art">' + (item.card ? '<img src="' + esc(item.card) + '" alt="" loading="lazy">' : '') +
+      '<span class="rank">#' + (idx + 1) + '</span><div class="cap">' + esc(item.title) + '</div></div>';
+    return el;
+  }
 
-    dock.appendChild(makeTile('draw'));
-    dock.appendChild(makeTile('assistant'));
-    S.favs.forEach(function (pkg) {
-      var a = appByPkg(pkg);
-      if (a) dock.appendChild(makeTile('app', a));
-    });
+  function focusKey(el) {
+    if (!el || !el.dataset) return null;
+    return { kind: el.dataset.kind, pkg: el.dataset.pkg || '', mid: el.dataset.mid || '', row: el.closest('.row') ? el.closest('.row').dataset.row : '' };
+  }
 
-    S.apps.forEach(function (a) { grid.appendChild(makeTile('app', a)); });
-    grid.appendChild(makeTile('connect'));
-    grid.appendChild(makeTile('settings'));
+  function row(id, title, sub, grid) {
+    var r = document.createElement('div');
+    r.className = 'row';
+    r.dataset.row = id;
+    r.innerHTML = (title ? '<h2 class="row-title">' + esc(title) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</h2>' : '') +
+      (grid ? '<div class="grid"></div>' : '<div class="track-clip"><div class="track"></div></div>');
+    return r;
+  }
+
+  function buildRows(keepFocus) {
+    var prev = keepFocus ? focusKey(S.focus) : null;
+    var rows = $('#rows');
+    rows.innerHTML = '';
+
+    var top = row('top', '', '', false), t = $('.track', top);
+    t.appendChild(appTile('draw'));
+    t.appendChild(appTile('assistant'));
+    S.favs.forEach(function (pkg) { var a = appByPkg(pkg); if (a) t.appendChild(appTile('app', a)); });
+    rows.appendChild(top);
+
+    if (S.media.movies && S.media.movies.length) {
+      var mv = row('movies', 'Bu Hafta Popüler Filmler', 'Türkiye', false);
+      S.media.movies.forEach(function (it, i) { $('.track', mv).appendChild(mediaTile(it, 'movies', i)); });
+      rows.appendChild(mv);
+    }
+    if (S.media.shows && S.media.shows.length) {
+      var sh = row('shows', 'Popüler Diziler', 'Türkiye', false);
+      S.media.shows.forEach(function (it, i) { $('.track', sh).appendChild(mediaTile(it, 'shows', i)); });
+      rows.appendChild(sh);
+    }
+
+    var all = row('all', 'Tüm Uygulamalar', 'OK\'a basılı tut: üst sıraya ekle / çıkar', true), g = $('.grid', all);
+    S.apps.forEach(function (a) { g.appendChild(appTile('app', a)); });
+    g.appendChild(appTile('connect'));
+    g.appendChild(appTile('settings'));
+    rows.appendChild(all);
+
+    var foot = document.createElement('div');
+    foot.className = 'attrib';
+    foot.textContent = (S.media.movies && S.media.movies.length)
+      ? 'Film ve dizi bilgileri TMDB\'den gelir. Bu ürün TMDB API\'sini kullanır ancak TMDB tarafından onaylanmamıştır. Manzara fotoğrafları: Bing.'
+      : 'Manzara fotoğrafları: Bing.';
+    rows.appendChild(foot);
 
     var target = null;
-    if (keepFocus && prev) {
-      var root = prev.inDock ? dock : grid;
-      target = $$('.tile', root).filter(function (t) {
-        return t.dataset.kind === prev.kind && (t.dataset.pkg || '') === (prev.pkg || '');
+    if (prev) {
+      target = $$('.tile', rows).filter(function (el) {
+        var k = focusKey(el);
+        return k.kind === prev.kind && k.pkg === prev.pkg && k.mid === prev.mid && k.row === prev.row;
       })[0] || null;
     }
-    if (S.screen === 'home') setFocus(target || dock.firstElementChild);
+    if (S.screen === 'home') setFocus(target || $('.row[data-row=top] .tile'));
+    else S.lastHomeFocus = target || $('.row[data-row=top] .tile');
   }
 
   function loadApps(force) {
@@ -154,7 +241,7 @@
       S.favs = load('favs', null) || defaultFavs(apps);
       save('favs', S.favs);
     }
-    renderHome(true);
+    buildRows(true);
   }
 
   function toggleFav(tile) {
@@ -165,7 +252,187 @@
     if (i >= 0) { S.favs.splice(i, 1); toast((a ? a.label : 'Uygulama') + ' üst sıradan çıkarıldı'); }
     else { S.favs.push(pkg); toast((a ? a.label : 'Uygulama') + ' üst sıraya eklendi'); }
     save('favs', S.favs);
-    renderHome(true);
+    buildRows(true);
+  }
+
+  // ------------------------------------------------------------ arka plan (Ken Burns)
+  var BG = { cur: 0, src: '', kb: 0, timer: null, mode: 'wall', mediaTimer: null };
+
+  function bgShow(src, onFail) {
+    if (!src || src === BG.src) return;
+    BG.src = src;
+    var img = new Image();
+    img.onload = function () {
+      if (BG.src !== src) return;
+      var layers = [$('#bgA'), $('#bgB')];
+      var next = layers[1 - BG.cur], prev = layers[BG.cur];
+      next.className = 'bg-layer';
+      next.style.backgroundImage = 'url("' + src + '")';
+      void next.offsetWidth; // animasyonu baştan başlat
+      BG.kb = (BG.kb % 4) + 1;
+      next.className = 'bg-layer on kb' + BG.kb;
+      prev.classList.remove('on');
+      BG.cur = 1 - BG.cur;
+    };
+    img.onerror = function () { if (BG.src === src) { BG.src = ''; if (onFail) onFail(); } };
+    img.src = src;
+  }
+
+  function wallUrl(w) {
+    var px = (window.screen && window.screen.width ? window.screen.width : 1920) * (window.devicePixelRatio || 1);
+    return (px >= 3000 && w.uhd) ? w.uhd : (w.hd || w.uhd);
+  }
+
+  function showWall() {
+    BG.mode = 'wall';
+    document.body.classList.remove('media');
+    if (!S.walls.length) return;
+    var w = S.walls[S.wallIdx % S.walls.length];
+    bgShow(wallUrl(w), nextWall);
+    $('#credit').textContent = w.credit || w.title || '';
+    clearTimeout(BG.timer);
+    BG.timer = setTimeout(nextWall, document.body.classList.contains('saving') ? 20000 : 32000);
+  }
+
+  function nextWall() {
+    if (!S.walls.length) return;
+    S.wallIdx = (S.wallIdx + 1) % S.walls.length;
+    if (BG.mode === 'wall') showWall();
+  }
+
+  function showMediaBg(item) {
+    BG.mode = 'media';
+    document.body.classList.add('media');
+    clearTimeout(BG.timer);
+    clearTimeout(BG.mediaTimer);
+    // Hızlı gezinirken her kart için 4K görsel indirmesin
+    BG.mediaTimer = setTimeout(function () { if (BG.mode === 'media') bgShow(item.backdrop || item.card); }, 380);
+  }
+
+  function setWalls(list) {
+    var first = !S.walls.length;
+    S.walls = list;
+    if (first) S.wallIdx = 0;
+    if (first && BG.mode === 'wall') showWall();
+  }
+
+  function loadWalls() {
+    if (!A) { setWalls(mockWalls()); return; }
+    var cached = load('walls', null);
+    if (cached && cached.length) setWalls(cached);
+    fetchJson(REMOTE_BASE + '/api/evtv/wallpapers').then(function (d) {
+      if (d && d.images && d.images.length) { save('walls', d.images); setWalls(d.images); }
+    }).catch(function () { /* önbellek yeter */ });
+  }
+
+  function loadMedia() {
+    if (!A) { if (/demo/.test(location.hash)) { S.media = mockMedia(); buildRows(true); } return; }
+    var cached = load('media', null);
+    if (cached && cached.enabled) { S.media = cached; buildRows(true); }
+    fetchJson(REMOTE_BASE + '/api/evtv/discover').then(function (d) {
+      if (!d) return;
+      S.media = d.enabled ? d : { enabled: false, movies: [], shows: [] };
+      save('media', S.media);
+      buildRows(true);
+    }).catch(function () { /* önbellek yeter */ });
+  }
+
+  // Bir yapımın Türkiye'deki platformları + fragmanı (önbellekli)
+  function loadDetails(item) {
+    var key = item.type + item.id;
+    if (S.details[key]) return Promise.resolve(S.details[key]);
+    if (!A) {
+      S.details[key] = { providers: ['Netflix', 'Disney Plus'], trailer: 'dQw4w9WgXcQ' };
+      return Promise.resolve(S.details[key]);
+    }
+    return fetchJson(REMOTE_BASE + '/api/evtv/discover?type=' + item.type + '&id=' + item.id)
+      .then(function (d) { S.details[key] = d; return d; })
+      .catch(function () { return { providers: [], trailer: null }; });
+  }
+
+  // Platform adı → kutuda yüklü uygulama
+  var PROVIDER_KEYS = {
+    'amazon prime video': ['prime video', 'amazon'], 'disney plus': ['disney'], 'apple tv plus': ['apple tv'],
+    'apple tv': ['apple tv'], 'hbo max': ['max', 'hbo'], 'max': ['max', 'hbo'], 'blutv': ['blutv', 'blu tv'],
+    'tv+': ['tv+', 'tvplus'], 'youtube premium': ['youtube'], 'netflix basic with ads': ['netflix']
+  };
+  function norm(s) { return String(s).toLowerCase().replace(/[^a-z0-9+ ]/g, '').replace(/\s+/g, ' ').trim(); }
+  function appForProvider(name) {
+    var n = norm(name);
+    var keys = PROVIDER_KEYS[n] || [n.split(' ')[0]];
+    for (var i = 0; i < S.apps.length; i++) {
+      var l = norm(S.apps[i].label);
+      for (var j = 0; j < keys.length; j++) if (keys[j] && l.indexOf(keys[j]) >= 0) return S.apps[i];
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------ hero (seçili öğe tanıtımı)
+  function greeting() {
+    var h = new Date().getHours();
+    return h < 5 ? 'İyi geceler' : h < 12 ? 'Günaydın' : h < 18 ? 'İyi günler' : h < 22 ? 'İyi akşamlar' : 'İyi geceler';
+  }
+
+  function mediaItem(el) {
+    var list = S.media[el.dataset.list] || [];
+    return list[+el.dataset.idx] || null;
+  }
+
+  function metaHtml(item, details) {
+    var parts = ['<span class="chip">' + (item.type === 'tv' ? 'DİZİ' : 'FİLM') + '</span>'];
+    if (item.year) parts.push('<span>' + esc(item.year) + '</span>');
+    if (item.rating) parts.push('<span><span class="star">★</span> ' + String(item.rating).replace('.', ',') + '</span>');
+    if (details && details.providers && details.providers.length) {
+      parts.push('<span>' + esc(details.providers.slice(0, 3).join(' · ')) + '</span>');
+    }
+    return parts.join('');
+  }
+
+  var heroTimer = null, heroKey = '';
+  function setHero(key, kicker, title, metaH, sub) {
+    if (key === heroKey) return;
+    heroKey = key;
+    var h = $('#hero');
+    h.classList.add('swap');
+    clearTimeout(heroTimer);
+    heroTimer = setTimeout(function () {
+      $('#heroKicker').textContent = kicker;
+      $('#heroTitle').textContent = title;
+      $('#heroMeta').innerHTML = metaH;
+      $('#heroSub').textContent = sub;
+      h.classList.remove('swap');
+    }, 200);
+  }
+
+  function updateHero() {
+    var el = S.focus;
+    if (!el || S.screen !== 'home' || !el.dataset.kind) return;
+    var kind = el.dataset.kind;
+    if (kind === 'media') {
+      var it = mediaItem(el);
+      if (!it) return;
+      showMediaBg(it);
+      var list = el.dataset.list === 'shows' ? 'Bu hafta popüler dizi' : 'Bu hafta popüler film';
+      setHero('m' + it.type + it.id, list + ' · #' + (+el.dataset.idx + 1), it.title, metaHtml(it, S.details[it.type + it.id]), it.overview);
+      loadDetails(it).then(function (d) {
+        if (S.focus === el) $('#heroMeta').innerHTML = metaHtml(it, d);
+      });
+      return;
+    }
+    if (BG.mode !== 'wall') showWall();
+    if (kind === 'app') {
+      var a = appByPkg(el.dataset.pkg) || { label: '' };
+      setHero('a' + a.pkg, greeting(), a.label, '', '');
+    } else {
+      var b = BUILTIN[kind];
+      var sub = b.sub;
+      if (kind === 'assistant') {
+        var last = S.chat.filter(function (m) { return m.role === 'assistant'; }).pop();
+        if (last) sub = '“' + last.text + '”';
+        else if (!S.hasKey) sub = 'Kurulum: Telefonu Bağla → Ayarlar sekmesinde Claude API anahtarını gir.';
+      }
+      setHero('b' + kind + (kind === 'assistant' ? S.chat.length : ''), b.kicker, b.label, '', sub);
+    }
   }
 
   // ------------------------------------------------------------ odak ve gezinme
@@ -181,8 +448,8 @@
     el.classList.add('focused');
     if (S.screen === 'home') {
       S.lastHomeFocus = el;
-      updateHomeScroll();
-      updateShelf();
+      updateScroll();
+      updateHero();
     }
   }
 
@@ -202,121 +469,108 @@
       if (dir === 'left' || dir === 'right') {
         main = dir === 'left' ? -dx : dx;
         cross = Math.abs(dy);
-        if (main <= 4 || cross > r.height * 0.6) return; // aynı sıra
+        if (main <= 4 || cross > r.height * 0.6) return;
         score = main + cross * 4;
       } else {
         main = dir === 'up' ? -dy : dy;
         cross = Math.abs(dx);
         if (main <= r.height * 0.4) return;
-        score = main * 1.5 + cross;
+        // Raflar arasında önce en yakın satıra, sonra yatayda en yakına
+        score = main * 3 + cross;
       }
       if (score < bestScore) { bestScore = score; best = el; }
     });
     if (best) setFocus(best);
   }
 
-  function offsetWithin(el, ancestor) {
-    var y = 0;
-    while (el && el !== ancestor) { y += el.offsetTop; el = el.offsetParent; }
-    return y;
-  }
+  // Satırı dikeyde, kutucuğu yatayda görünür tut
+  function updateScroll() {
+    var el = S.focus, rows = $('#rows');
+    if (!el || !rows.contains(el)) return;
+    var rowEl = el.closest('.row');
+    var all = $$('.row', rows), idx = all.indexOf(rowEl);
+    all.forEach(function (r, i) { r.classList.toggle('past', i < idx); });
+    var y = rowEl.offsetTop;
+    var grid = el.closest('.grid');
+    if (grid) y += Math.max(0, el.offsetTop - 0);
+    if (idx === 0) y = 0;
+    rows.style.transform = 'translateY(' + (-y) + 'px)';
+    document.body.classList.toggle('deep', !!grid);
 
-  function updateHomeScroll() {
-    var el = S.focus, sc = $('#homeScroller'), home = $('#home');
-    if (!el || !sc.contains(el)) return;
-    if ($('#dock').contains(el)) {
-      sc.style.transform = 'translateY(0)';
-      home.classList.remove('scrolled');
-      document.body.classList.remove('grid-scrolled');
-      scrollDock(el);
-      return;
+    var track = el.closest('.track');
+    if (track) {
+      var clip = track.parentNode;
+      var pad = parseFloat(getComputedStyle(clip).paddingLeft) || 0;
+      var view = clip.clientWidth - pad * 2;
+      var x = track._x || 0;
+      var left = el.offsetLeft, right = left + el.offsetWidth;
+      var maxX = Math.max(0, track.scrollWidth - view);
+      if (left - x < 0) x = left;
+      else if (right - x > view) x = right - view;
+      x = Math.min(maxX, Math.max(0, x));
+      track._x = x;
+      track.style.transform = 'translateX(' + (-x) + 'px)';
     }
-    home.classList.add('scrolled');
-    document.body.classList.add('grid-scrolled');
-    var top = offsetWithin(el, sc);
-    var target = window.innerHeight * 0.2;
-    sc.style.transform = 'translateY(' + Math.min(0, -(top - target)) + 'px)';
-  }
-
-  // Üst sıra taşarsa odaklanan kutucuk görünür kalacak şekilde yatay kaydır
-  var dockX = 0;
-  function scrollDock(el) {
-    var track = $('#dock'), dock = track.parentNode;
-    var pad = parseFloat(getComputedStyle(dock).paddingLeft) || 0;
-    var view = dock.clientWidth - pad * 2;
-    var left = el.offsetLeft, right = left + el.offsetWidth;
-    var maxX = Math.max(0, track.scrollWidth - view);
-    if (left - dockX < 0) dockX = left;
-    else if (right - dockX > view) dockX = right - view;
-    dockX = Math.min(maxX, Math.max(0, dockX));
-    track.style.transform = 'translateX(' + (-dockX) + 'px)';
-  }
-
-  // ------------------------------------------------------------ üst raf (seçili öğenin tanıtımı)
-  var wpFlip = false, wpCurrent = '';
-  function setWallpaper(src) {
-    if (src === wpCurrent) return;
-    wpCurrent = src;
-    var a = $('#wpA'), b = $('#wpB');
-    var show = wpFlip ? a : b, hide = wpFlip ? b : a;
-    wpFlip = !wpFlip;
-    if (src) {
-      show.style.backgroundImage = 'url("' + src + '")';
-      show.classList.add('show');
-    }
-    hide.classList.remove('show');
-  }
-
-  function updateShelf() {
-    var el = S.focus;
-    if (!el || !el.dataset.kind) return;
-    var kind = el.dataset.kind, side = $('#shelfSide');
-    var kicker = '', title = '', sub = '';
-    side.innerHTML = '';
-    if (kind === 'app') {
-      var a = appByPkg(el.dataset.pkg) || { label: '' };
-      kicker = S.favs.indexOf(a.pkg) >= 0 ? 'Üst sırada' : 'Uygulama';
-      title = a.label;
-      sub = 'Açmak için OK. Üst sıraya eklemek/çıkarmak için OK\'a basılı tut.';
-      setWallpaper(a.banner || a.icon || '');
-    } else {
-      var b = BUILTIN[kind];
-      kicker = b.kicker; title = b.label; sub = b.sub;
-      setWallpaper('');
-      if (kind === 'draw') {
-        var c = document.createElement('canvas');
-        c.width = 960; c.height = 540; c.id = 'shelfBoard';
-        side.appendChild(c);
-        copyBoard();
-      } else if (kind === 'assistant') {
-        var last = S.chat.filter(function (m) { return m.role === 'assistant'; }).pop();
-        if (last) sub = '“' + last.text + '”';
-        else if (!S.hasKey) sub = 'Kurulum: Telefonu bağla → Ayarlar sekmesinde Claude API anahtarını gir.';
-      } else if (kind === 'connect') {
-        side.innerHTML = '<div class="qr-card"><div class="qr" data-qr></div><span>Okut ve bağlan</span></div>';
-        renderQrs();
-      }
-    }
-    $('#shelfKicker').textContent = kicker;
-    $('#shelfTitle').textContent = title;
-    $('#shelfSub').textContent = sub;
   }
 
   // ------------------------------------------------------------ ekranlar
   function show(name) {
-    document.body.classList.remove('grid-scrolled');
     $$('.screen').forEach(function (s) { s.classList.toggle('active', s.id === name); });
     S.screen = name;
+    var panel = name === 'draw' || name === 'assistant' || name === 'connect';
+    document.body.classList.toggle('panel', panel);
+    document.body.classList.toggle('deep', false);
     if (name === 'home') {
-      setWallpaper('');
-      setFocus(S.lastHomeFocus && document.body.contains(S.lastHomeFocus) ? S.lastHomeFocus : $('#dock').firstElementChild);
+      var f = S.lastHomeFocus && document.body.contains(S.lastHomeFocus) ? S.lastHomeFocus : $('.row[data-row=top] .tile');
+      heroKey = '';
+      setFocus(f);
       return;
     }
-    setWallpaper('');
-    var first = $('#' + name + ' .focusable');
-    if (name === 'draw') { resizeBoardNote(); }
-    if (name === 'assistant') { renderChat(); }
-    setFocus(first);
+    if (panel && BG.mode !== 'wall') showWall();
+    if (name === 'draw') boardChanged();
+    if (name === 'assistant') renderChat();
+    if (name !== 'detail') setFocus($('#' + name + ' .focusable'));
+  }
+
+  function openDetail(item) {
+    S.detailItem = item;
+    $('#dKicker').textContent = item.type === 'tv' ? 'Dizi' : 'Film';
+    $('#dTitle').textContent = item.title;
+    $('#dMeta').innerHTML = metaHtml(item, S.details[item.type + item.id]);
+    $('#dSub').textContent = item.overview || 'Türkçe özet bulunmuyor.';
+    $('#dNote').textContent = 'Platformlar yükleniyor…';
+    showMediaBg(item);
+    show('detail');
+    renderDetailActions(item, null);
+    loadDetails(item).then(function (d) {
+      if (S.detailItem !== item) return;
+      $('#dMeta').innerHTML = metaHtml(item, d);
+      renderDetailActions(item, d);
+    });
+  }
+
+  function renderDetailActions(item, d) {
+    var box = $('#dActions');
+    var html = '';
+    var missing = [];
+    if (d && d.trailer) html += '<button class="btn focusable" data-action="trailer" data-v="' + esc(d.trailer) + '">▶  Fragmanı İzle</button>';
+    if (d && d.providers) {
+      d.providers.forEach(function (p) {
+        var app = appForProvider(p);
+        if (app) html += '<button class="btn focusable" data-action="openApp" data-pkg="' + esc(app.pkg) + '">' + esc(app.label) + '\'te Aç</button>';
+        else missing.push(p);
+      });
+    }
+    html += '<button class="btn focusable" data-action="askAbout">✨  Asistana Sor</button>';
+    html += '<button class="btn focusable" data-action="back">Geri</button>';
+    box.innerHTML = html;
+    var note = '';
+    if (d) {
+      if (!d.providers || !d.providers.length) note = 'Türkiye\'de abonelikle izlenebileceği bir platform bilgisi yok.';
+      else if (missing.length) note = 'Türkiye\'de ayrıca: ' + missing.join(', ') + ' (kutuda yüklü değil)';
+    }
+    $('#dNote').textContent = d ? note : 'Platformlar yükleniyor…';
+    if (S.screen === 'detail') setFocus($('#dActions .btn'));
   }
 
   function activate(el) {
@@ -326,12 +580,15 @@
     var kind = el.dataset.kind, action = el.dataset.action;
     if (kind === 'app') {
       if (A) { if (!A.launch(el.dataset.pkg)) toast('Uygulama açılamadı'); }
-      else toast(el.textContent.trim() + ' açılıyor (önizleme)');
+      else toast((appByPkg(el.dataset.pkg) || {}).label + ' açılıyor (önizleme)');
+    } else if (kind === 'media') {
+      var it = mediaItem(el);
+      if (it) openDetail(it);
     } else if (kind === 'draw' || kind === 'assistant' || kind === 'connect') {
       show(kind);
     } else if (kind === 'settings') {
       if (A) A.openSettings(); else toast('Android ayarları açılır');
-    } else if (action === 'home') {
+    } else if (action === 'home' || action === 'back') {
       show('home');
     } else if (action === 'clearBoard') {
       if (A) A.clearBoard(); else onEvent({ type: 'clear' });
@@ -340,12 +597,31 @@
       startVoice();
     } else if (action === 'resetChat') {
       if (A) A.resetAssistant(); else onEvent({ type: 'chatReset' });
+    } else if (action === 'trailer') {
+      openUrl('https://www.youtube.com/watch?v=' + el.dataset.v);
+    } else if (action === 'openApp') {
+      if (A) { if (!A.launch(el.dataset.pkg)) toast('Uygulama açılamadı'); } else toast('Uygulama açılır (önizleme)');
+    } else if (action === 'askAbout') {
+      var item = S.detailItem;
+      if (!item) return;
+      if (!S.hasKey) { toast('Önce telefondan API anahtarını gir'); return; }
+      show('assistant');
+      var q = '"' + item.title + '"' + (item.year ? ' (' + item.year + ')' : '') + ' ' + (item.type === 'tv' ? 'dizisi' : 'filmi') +
+        ' hakkında spoiler vermeden kısaca bilgi ver; beğenirsek izleyebileceğimiz 3 benzer yapım öner.';
+      if (A) A.ask(q); else onEvent({ type: 'chat', role: 'user', text: q });
     }
   }
 
+  function openUrl(url) {
+    if (A && A.openUrl) { if (!A.openUrl(url)) toast('Açılamadı'); }
+    else toast('Açılır: ' + url);
+  }
+
   function back() {
+    if (S.screen === 'detail') { show('home'); return; }
     if (S.screen !== 'home') { show('home'); return; }
-    if (!$('#dock').contains(S.focus)) setFocus($('#dock').firstElementChild);
+    var first = $('.row[data-row=top] .tile');
+    if (S.focus !== first) setFocus(first);
   }
 
   function startVoice() {
@@ -354,11 +630,32 @@
     if (A) A.startVoice(); else toast('Mikrofon (önizlemede yok)');
   }
 
+  // ------------------------------------------------------------ ekran koruyucu
+  var idleTimer = null;
+  function saving() { return document.body.classList.contains('saving'); }
+  function poke() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(startSaver, IDLE_MS);
+  }
+  function startSaver() {
+    if (S.screen !== 'home' && S.screen !== 'detail') { poke(); return; }
+    document.body.classList.add('saving');
+    showWall();
+    tick();
+  }
+  function stopSaver() {
+    document.body.classList.remove('saving');
+    if (S.screen === 'home') { heroKey = ''; updateHero(); }
+    else if (S.screen === 'detail' && S.detailItem) showMediaBg(S.detailItem);
+  }
+
   // ------------------------------------------------------------ tuşlar
   var okDownAt = 0, okTimer = null, okConsumed = false;
   var OK_KEYS = { 13: 1, 23: 1, 66: 1 };
 
   document.addEventListener('keydown', function (e) {
+    poke();
+    if (saving()) { e.preventDefault(); if (OK_KEYS[e.keyCode]) okDownAt = -1; stopSaver(); return; }
     var k = e.keyCode;
     if (k === 37) { navigate('left'); e.preventDefault(); }
     else if (k === 38) { navigate('up'); e.preventDefault(); }
@@ -379,11 +676,10 @@
     if (!OK_KEYS[e.keyCode]) return;
     e.preventDefault();
     clearTimeout(okTimer);
-    if (okDownAt && !okConsumed) activate(S.focus);
+    if (okDownAt > 0 && !okConsumed) activate(S.focus);
     okDownAt = 0;
   });
 
-  // Fare/dokunmatik (geliştirme için)
   document.addEventListener('click', function (e) {
     var el = e.target.closest('.focusable');
     if (el) { setFocus(el); activate(el); }
@@ -515,7 +811,7 @@
         if (S.hasKey) toast('API anahtarı kaydedildi ✓');
         break;
     }
-    if (S.screen === 'home' && S.focus && S.focus.dataset.kind === 'assistant') updateShelf();
+    if (S.screen === 'home' && S.focus && S.focus.dataset.kind === 'assistant') updateHero();
   }
 
   // ------------------------------------------------------------ QR
@@ -532,7 +828,6 @@
   // ------------------------------------------------------------ internet odası (Supabase Realtime)
   // Telefonlar ekatalox.com/tv?r=ODA sayfasından bu odaya bağlanır; ev ağı şart değil.
   // TV tek doğruluk kaynağıdır: telefonlar "cmd" gönderir, TV işleyip sonucu "ev" ile yayınlar.
-  var REMOTE_BASE = 'https://ekatalox.com';
   var R = { channel: null, room: '', ready: false, cfg: load('sbcfg', null), retry: null };
   var RELAY = { stroke: 1, remove: 1, clear: 1, chat: 1, chatError: 1, thinking: 1, chatReset: 1, config: 1 };
 
@@ -602,22 +897,32 @@
     if (batch.length) relay({ type: 'strokesBatch', strokes: batch });
   }
 
+
   // ------------------------------------------------------------ saat
   function tick() {
     var d = new Date();
-    $('#time').textContent = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-    $('#date').textContent = d.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
+    var t = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    $('#time').textContent = t;
+    $('#saverTime').textContent = t;
+    $('#saverDate').textContent = d.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
   }
 
   // ------------------------------------------------------------ Android'den gelen çağrılar
   window.tv = {
     key: function (name) {
+      poke();
+      if (saving()) { stopSaver(); return; }
       if (name === 'back') back();
       else if (name === 'menu') { if (S.screen === 'home') toggleFav(S.focus); }
       else if (name === 'voice') startVoice();
     },
-    home: function () { show('home'); setFocus($('#dock').firstElementChild); },
-    resumed: function () { loadApps(false); refreshConnect(); },
+    home: function () {
+      poke();
+      if (saving()) stopSaver();
+      show('home');
+      setFocus($('.row[data-row=top] .tile'));
+    },
+    resumed: function () { poke(); loadApps(false); refreshConnect(); },
     appsChanged: function () { loadApps(true); },
     serverEvent: function (json) {
       var ev;
@@ -651,13 +956,19 @@
     setInterval(tick, 10000);
     refreshConnect();
     loadApps(true);
+    loadWalls();
+    loadMedia();
+    setInterval(loadWalls, 6 * 3600 * 1000);
+    setInterval(loadMedia, 3600 * 1000);
     if (A) {
       try { onEvent(JSON.parse(A.getState())); } catch (e) { /* yok say */ }
     } else if (/demo/.test(location.hash)) {
       demo();
     }
     renderChat();
+    poke();
     if (location.hash.indexOf('screen=') >= 0) show(location.hash.split('screen=')[1].split('&')[0]);
+    if (location.hash.indexOf('saver') >= 0) startSaver();
   }
 
   // Tarayıcı önizlemesi için örnek içerik (#demo)
@@ -673,7 +984,7 @@
       { id: 'b', color: '#64d2ff', size: 0.006, pts: u }
     ], chat: [
       { role: 'user', text: 'Bu akşam ikimiz için hafif bir komedi filmi önerir misin?' },
-      { role: 'assistant', text: 'Tabii! Kısa ve keyifli bir şey isterseniz romantik komedi türünde, 90-100 dakikalık bir film iyi gider. Platformunuzu söylerseniz oradaki seçeneklerden üç tanesini sıralayayım.' }
+      { role: 'assistant', text: 'Tabii! Kısa ve keyifli bir şey isterseniz romantik komedi türünde, 90-100 dakikalık bir film iyi gider.' }
     ] });
   }
 
