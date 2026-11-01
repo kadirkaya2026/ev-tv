@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.evim.tv'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.evim.tv'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Kişisel kullanım: release de debug anahtarıyla imzalanır, doğrudan kurulabilir.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packaging {
+        resources {
+            excludes += [
+                'META-INF/DEPENDENCIES',
+                'META-INF/LICENSE*',
+                'META-INF/NOTICE*',
+                'META-INF/INDEX.LIST',
+                'META-INF/versions/9/OSGI-INF/MANIFEST.MF',
+                'META-INF/*.version'
+            ]
+        }
+    }
+}
+
+dependencies {
+    implementation 'com.anthropic:anthropic-java:3.2.0'
+}

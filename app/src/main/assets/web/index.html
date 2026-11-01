@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ev TV</title>
+  <link rel="stylesheet" href="tv.css">
+</head>
+<body>
+  <!-- Arka plan: odaklanan uygulamanın bulanık görseli + yumuşak renk lekeleri -->
+  <div id="wallpaper" aria-hidden="true">
+    <div class="wp-layer" id="wpA"></div>
+    <div class="wp-layer" id="wpB"></div>
+    <div class="wp-blob wp-1"></div>
+    <div class="wp-blob wp-2"></div>
+    <div class="wp-blob wp-3"></div>
+    <div class="wp-shade"></div>
+  </div>
+
+  <div class="clock" id="clock"><span id="time">--:--</span><span id="date"></span></div>
+
+  <!-- ANA EKRAN -->
+  <section id="home" class="screen active">
+    <div id="homeScroller">
+      <div class="shelf" id="shelf">
+        <div class="shelf-text">
+          <div class="shelf-kicker" id="shelfKicker"></div>
+          <h1 class="shelf-title" id="shelfTitle">Hoş geldin</h1>
+          <p class="shelf-sub" id="shelfSub"></p>
+        </div>
+        <div class="shelf-side" id="shelfSide"></div>
+      </div>
+
+      <div class="dock"><div class="dock-track" id="dock"></div></div>
+
+      <div class="grid-wrap">
+        <h2 class="row-title">Tüm Uygulamalar</h2>
+        <div class="grid" id="grid"></div>
+        <p class="hint">İpucu: Bir uygulamada <b>OK</b>'a basılı tut ya da <b>Menü</b> tuşuna bas → üst sıraya ekle / çıkar</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ÇİZİM TAHTASI -->
+  <section id="draw" class="screen">
+    <div class="screen-head">
+      <h1>Çizim Tahtası</h1>
+      <p>Telefonlarınızdan çizin, burada anında görünsün.</p>
+    </div>
+    <div class="draw-layout">
+      <div class="board-frame"><canvas id="board" width="1920" height="1080"></canvas>
+        <div class="board-empty" id="boardEmpty">Henüz çizim yok. Telefonla QR'ı okutup başlayın.</div>
+      </div>
+      <aside class="side-panel">
+        <div class="qr-card"><div class="qr" data-qr></div><span>Telefondan çizmek için okut</span></div>
+        <button class="btn focusable" data-action="clearBoard">Tahtayı Temizle</button>
+        <button class="btn focusable" data-action="home">Ana Ekran</button>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ASİSTAN -->
+  <section id="assistant" class="screen">
+    <div class="screen-head">
+      <h1>Asistan</h1>
+      <p>Kumandanın mikrofon tuşuna bas ya da telefondan yaz.</p>
+    </div>
+    <div class="assist-layout">
+      <div class="chat" id="chat"></div>
+      <aside class="side-panel">
+        <div class="notice" id="keyNotice" hidden>Asistan için Claude API anahtarı gerekli. QR'ı okut → <b>Ayarlar</b> sekmesine anahtarını yapıştır.</div>
+        <div class="qr-card"><div class="qr" data-qr></div><span>Telefondan soru sor</span></div>
+        <button class="btn focusable primary" data-action="voice">🎤  Konuş</button>
+        <button class="btn focusable" data-action="resetChat">Yeni Sohbet</button>
+        <button class="btn focusable" data-action="home">Ana Ekran</button>
+      </aside>
+    </div>
+  </section>
+
+  <!-- TELEFON BAĞLA -->
+  <section id="connect" class="screen">
+    <div class="connect">
+      <div class="qr-card big"><div class="qr" data-qr></div></div>
+      <div class="connect-text">
+        <h1>Telefonu Bağla</h1>
+        <ol>
+          <li>Telefon TV kutusuyla <b>aynı Wi-Fi</b>'a bağlı olsun.</li>
+          <li>Kamerayla QR kodu okut.</li>
+          <li>Açılan sayfadan çiz, asistana sor, ayarları yap.</li>
+        </ol>
+        <p class="url" id="connectUrl"></p>
+        <p class="muted">Eşin de aynı QR'ı okutursa aynı tahtaya birlikte çizersiniz.</p>
+        <button class="btn focusable" data-action="home">Ana Ekran</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" role="status"></div>
+
+  <script src="qrcode.js"></script>
+  <script src="tv.js"></script>
+</body>
+</html>

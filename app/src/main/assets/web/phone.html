@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0b0b10">
+  <title>Ev TV Kumanda</title>
+  <link rel="stylesheet" href="/phone.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">Ev TV</div>
+    <div class="status" id="status"><i></i><span>Bağlanıyor…</span></div>
+  </header>
+
+  <main>
+    <!-- ÇİZ -->
+    <section class="tab active" id="tab-draw">
+      <div class="pad-wrap"><canvas id="pad"></canvas></div>
+      <div class="tools">
+        <div class="colors" id="colors"></div>
+        <div class="row">
+          <div class="sizes" id="sizes"></div>
+          <button class="tool" id="undo">Geri al</button>
+          <button class="tool danger" id="clear">Temizle</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ASİSTAN -->
+    <section class="tab" id="tab-ask">
+      <div class="chat" id="chat"></div>
+      <form class="ask" id="askForm">
+        <textarea id="askText" rows="1" placeholder="TV'ye bir soru yaz… (klavyedeki 🎤 ile sesli de yazabilirsin)"></textarea>
+        <button type="submit" id="askBtn" aria-label="Gönder">➤</button>
+      </form>
+      <button class="link" id="resetChat">Yeni sohbet başlat</button>
+    </section>
+
+    <!-- AYARLAR -->
+    <section class="tab" id="tab-settings">
+      <div class="card">
+        <h2>Claude API anahtarı</h2>
+        <p class="muted" id="keyState">Kontrol ediliyor…</p>
+        <input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…">
+        <button class="primary" id="saveKey">Kaydet</button>
+        <p class="muted small">Anahtarı <b>console.anthropic.com</b> → API Keys bölümünden alabilirsin. Anahtar sadece TV kutusunda saklanır.</p>
+      </div>
+      <div class="card">
+        <h2>Adın</h2>
+        <p class="muted small">Çizimde "Geri al" sadece senin son çizgini siler.</p>
+        <input id="name" type="text" maxlength="20" placeholder="ör. Kadir">
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-tab="draw" class="active"><span>✏️</span>Çiz</button>
+    <button data-tab="ask"><span>✨</span>Asistan</button>
+    <button data-tab="settings"><span>⚙️</span>Ayarlar</button>
+  </nav>
+
+  <script src="/phone.js"></script>
+</body>
+</html>

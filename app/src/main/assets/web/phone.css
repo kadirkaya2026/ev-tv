@@ -1,0 +1,70 @@
+:root {
+  --bg: #0b0b10; --card: #18181f; --line: rgba(255,255,255,.12);
+  --text: #f5f5f7; --muted: rgba(245,245,247,.6); --accent: #0a84ff; --danger: #ff453a;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font-family: -apple-system, "SF Pro Text", "Inter", "Roboto", system-ui, sans-serif; }
+body { display: flex; flex-direction: column; overscroll-behavior: none; }
+button, input, textarea { font: inherit; color: inherit; }
+
+.top { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 8px;
+  padding-top: max(14px, env(safe-area-inset-top)); }
+.brand { font-weight: 700; font-size: 20px; letter-spacing: -.02em; }
+.status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.status i { width: 8px; height: 8px; border-radius: 50%; background: #ff9f0a; }
+.status.ok i { background: #30d158; }
+.status.bad i { background: var(--danger); }
+
+main { flex: 1; min-height: 0; position: relative; }
+.tab { position: absolute; inset: 0; display: none; flex-direction: column; padding: 8px 16px 12px; gap: 12px; }
+.tab.active { display: flex; }
+
+/* çiz */
+.pad-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+#pad { width: 100%; aspect-ratio: 16 / 9; max-height: 100%; border-radius: 16px; touch-action: none;
+  background: radial-gradient(120% 120% at 30% 20%, #1e1e27 0%, #121218 70%); border: 1px solid var(--line); }
+.tools { display: flex; flex-direction: column; gap: 12px; }
+.colors { display: flex; gap: 10px; justify-content: space-between; }
+.colors button { flex: 1; aspect-ratio: 1; max-width: 44px; border-radius: 50%; border: 3px solid transparent; }
+.colors button.on { border-color: #fff; transform: scale(1.08); }
+.row { display: flex; gap: 8px; align-items: center; }
+.sizes { display: flex; gap: 6px; flex: 1; }
+.sizes button { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+  display: flex; align-items: center; justify-content: center; }
+.sizes button.on { border-color: #fff; }
+.sizes i { display: block; border-radius: 50%; background: #fff; }
+.tool { height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); }
+.tool.danger { color: var(--danger); }
+
+/* asistan */
+.chat { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+.msg { max-width: 85%; padding: 10px 14px; border-radius: 18px; line-height: 1.45; white-space: pre-wrap; font-size: 16px; }
+.msg.user { align-self: flex-end; background: var(--accent); border-bottom-right-radius: 6px; }
+.msg.assistant { align-self: flex-start; background: var(--card); border-bottom-left-radius: 6px; }
+.msg.error { align-self: center; background: rgba(255,69,58,.18); font-size: 14px; }
+.msg.typing { color: var(--muted); }
+.empty { margin: auto; text-align: center; color: var(--muted); line-height: 1.6; }
+.ask { display: flex; gap: 8px; align-items: flex-end; }
+.ask textarea { flex: 1; resize: none; max-height: 120px; padding: 12px 14px; border-radius: 20px;
+  border: 1px solid var(--line); background: var(--card); font-size: 16px; }
+.ask button { width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--accent); font-size: 18px; }
+.ask button:disabled { opacity: .4; }
+.link { background: none; border: 0; color: var(--muted); font-size: 14px; padding: 4px; }
+
+/* ayarlar */
+#tab-settings { overflow-y: auto; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.card h2 { margin: 0; font-size: 17px; }
+.card input { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: #0f0f14; font-size: 16px; }
+.primary { padding: 12px; border-radius: 12px; border: 0; background: var(--accent); font-weight: 600; }
+.muted { color: var(--muted); margin: 0; }
+.small { font-size: 13px; line-height: 1.5; }
+
+/* sekmeler */
+.tabs { display: flex; border-top: 1px solid var(--line); background: rgba(20,20,26,.9);
+  padding-bottom: env(safe-area-inset-bottom); }
+.tabs button { flex: 1; background: none; border: 0; padding: 8px 0 10px; font-size: 12px; color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.tabs button span { font-size: 20px; }
+.tabs button.active { color: var(--text); }
