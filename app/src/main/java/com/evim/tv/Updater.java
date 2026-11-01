@@ -1,10 +1,5 @@
 package com.evim.tv;
 
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageInstaller;
-import android.os.Build;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -12,27 +7,17 @@ import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
 /**
- * GitHub Releases'ten kendi kendini güncelleme.
- * Son sürümü sorar, APK'yı indirip Android paket yükleyicisine verir;
- * kullanıcı ekrandaki "Güncelle" onayına basınca kurulur.
+ * GitHub Releases'te yeni sürüm var mı diye bakar. İndirme ve kurulum
+ * tarayıcı üzerinden yapılır (MainActivity.startUpdate).
  */
 final class Updater {
 
     static final String RELEASES_API = "https://api.github.com/repos/kadirkaya2026/ev-tv/releases/latest";
     static final String APK_NAME = "ev-tv.apk";
-
-    interface Listener {
-        void onProgress(int percent);
-
-        void onDone(boolean ok, String message);
-    }
-
-    private static volatile boolean busy = false;
 
     private Updater() {
     }
@@ -63,59 +48,6 @@ final class Updater {
         String notes = rel.optString("body", "");
         o.put("notes", notes.length() > 600 ? notes.substring(0, 600) + "…" : notes);
         return o;
-    }
-
-    /** İndirir ve yükleyiciye verir. Onay ekranını InstallReceiver açar. */
-    static void downloadAndInstall(Context ctx, String apkUrl, Listener l) {
-        if (busy) {
-            l.onDone(false, "Güncelleme zaten sürüyor.");
-            return;
-        }
-        busy = true;
-        PackageInstaller.Session session = null;
-        try {
-            PackageInstaller pi = ctx.getPackageManager().getPackageInstaller();
-            PackageInstaller.SessionParams params =
-                    new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
-            params.setAppPackageName(ctx.getPackageName());
-            int id = pi.createSession(params);
-            session = pi.openSession(id);
-
-            HttpURLConnection c = open(apkUrl);
-            long total = c.getContentLengthLong();
-            try (InputStream in = c.getInputStream();
-                 OutputStream out = session.openWrite(APK_NAME, 0, total > 0 ? total : -1)) {
-                byte[] buf = new byte[64 * 1024];
-                long done = 0;
-                int last = -1, r;
-                while ((r = in.read(buf)) > 0) {
-                    out.write(buf, 0, r);
-                    done += r;
-                    if (total > 0) {
-                        int pct = (int) (done * 100 / total);
-                        if (pct != last) {
-                            last = pct;
-                            l.onProgress(pct);
-                        }
-                    }
-                }
-                session.fsync(out);
-            }
-
-            int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-            if (Build.VERSION.SDK_INT >= 31) flags |= PendingIntent.FLAG_MUTABLE;
-            PendingIntent pending = PendingIntent.getBroadcast(ctx, id,
-                    new Intent(ctx, InstallReceiver.class), flags);
-            session.commit(pending.getIntentSender());
-            session.close();
-            session = null;
-            l.onDone(true, "İndirildi. Ekrandaki onayda “Güncelle”ye bas.");
-        } catch (Exception e) {
-            if (session != null) session.abandon();
-            l.onDone(false, "Güncelleme indirilemedi: " + e.getMessage());
-        } finally {
-            busy = false;
-        }
     }
 
     static int compare(String a, String b) {

@@ -24,43 +24,14 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
-      # Sabit imza anahtarı: her sürüm aynı anahtarla imzalanmalı ki uygulama içinden
-      # güncelleme kurulabilsin. Anahtar repoda YOK. Öncelik GitHub Secrets'ta
-      # (EVTV_KEYSTORE_B64 + EVTV_KEY_PASS); yoksa ilk derlemede rastgele şifreyle
-      # üretilip Actions önbelleğinde saklanır (keepalive.yml önbelleği canlı tutar).
+      # İmza: Android debug anahtarı (v1.2'de sorunsuz kurulan tür). Anahtar dosyası
+      # Actions önbelleğinde saklanır; her sürüm aynı anahtarla imzalanır ki
+      # eskinin üzerine güncelleme olarak kurulsun. keepalive.yml önbelleği canlı tutar.
       - name: İmza anahtarı önbelleği
         uses: actions/cache@v4
         with:
-          path: .evtv-signing
-          key: evtv-signing-v1
-
-      - name: İmza anahtarını hazırla
-        id: sign
-        env:
-          EVTV_KEYSTORE_B64: ${{ secrets.EVTV_KEYSTORE_B64 }}
-          SECRET_PASS: ${{ secrets.EVTV_KEY_PASS }}
-        run: |
-          if [ -n "$EVTV_KEYSTORE_B64" ] && [ -n "$SECRET_PASS" ]; then
-            echo "$EVTV_KEYSTORE_B64" | base64 -d > app/evtv-release.jks
-            echo "EVTV_KEY_PASS=$SECRET_PASS" >> "$GITHUB_ENV"
-            echo "İmza: GitHub Secrets"
-          else
-            mkdir -p .evtv-signing
-            if [ ! -f .evtv-signing/evtv-release.jks ]; then
-              openssl rand -hex 24 > .evtv-signing/pass
-              PASS=$(cat .evtv-signing/pass)
-              keytool -genkeypair -keystore .evtv-signing/evtv-release.jks -alias evtv \
-                -keyalg RSA -keysize 2048 -validity 36500 \
-                -storepass "$PASS" -keypass "$PASS" -dname "CN=Ev TV, C=TR"
-              echo "::notice::Yeni imza anahtarı oluşturuldu ve önbelleğe alınacak."
-            fi
-            PASS=$(cat .evtv-signing/pass)
-            echo "::add-mask::$PASS"
-            cp .evtv-signing/evtv-release.jks app/evtv-release.jks
-            echo "EVTV_KEY_PASS=$PASS" >> "$GITHUB_ENV"
-            echo "İmza: Actions önbelleği"
-          fi
-          echo "signed=true" >> "$GITHUB_OUTPUT"
+          path: ~/.android/debug.keystore
+          key: evtv-debug-keystore-v1
 
       - name: APK derle
         run: gradle --no-daemon assembleRelease
@@ -81,7 +52,7 @@ jobs:
         run: echo "name=v$(grep -oP "versionName '\\K[^']+" app/build.gradle)" >> "$GITHUB_OUTPUT"
 
       - name: Sürüm yayınla
-        if: steps.sign.outputs.signed == 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.name || github.ref_name }}

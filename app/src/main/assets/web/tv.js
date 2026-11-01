@@ -615,11 +615,9 @@
       checkUpdate();
     } else if (action === 'doUpdate') {
       if (!S.update || !S.update.url) return;
-      $('#updMsg').textContent = 'İndiriliyor…';
-      $('#updBarWrap').hidden = false;
-      $('#updBar').style.width = '0';
+      $('#updMsg').textContent = 'Tarayıcı açılıyor…';
       if (A && A.startUpdate) A.startUpdate(S.update.url);
-      else { tv.updateProgress(60); setTimeout(function () { tv.updateStatus(true, 'İndirildi. Ekrandaki onayda “Güncelle”ye bas.'); }, 500); }
+      else tv.updateStatus(true, 'Tarayıcıda indiriliyor. Bitince dosyayı açıp “Yükle”ye bas; ayarların silinmez.');
     } else if (action === 'trailer') {
       openUrl('https://www.youtube.com/watch?v=' + el.dataset.v);
     } else if (action === 'openApp') {

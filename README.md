@@ -44,14 +44,9 @@ adb install -r ev-tv.apk
 
 ## Güncelleme
 
-v1.3'ten itibaren uygulama kendi kendini günceller: yeni sürüm çıkınca ana ekranda **Güncellemeler** kartı "YENİ" etiketiyle görünür → **Şimdi Güncelle** → sistemin onay ekranında **Güncelle**. Favoriler, API anahtarı ve çizimler korunur. İlk seferde Android "bilinmeyen uygulamaları yükleme" izni ister; Ev TV'ye izin ver.
+Yeni sürüm çıkınca ana ekranda **Güncellemeler** kartı "YENİ" etiketiyle görünür → **Şimdi Güncelle** → tarayıcı APK'yı indirir → dosyayı açıp **Yükle**. Eski sürümün üzerine kurulur; favoriler, API anahtarı ve çizimler korunur.
 
-> v1.2 ve öncesi her derlemede farklı imzayla çıktığı için v1.3'e geçerken **bir kez** eski sürümü kaldırıp yeniden kurman gerekir. Sonrası hep uygulama içinden.
-
-### Derleme imzası
-Sürümlerin hepsi aynı anahtarla imzalanmalı. Anahtar repoda değil: ilk derlemede GitHub Actions rastgele şifreyle üretip Actions önbelleğinde saklar; `keepalive.yml` 3 günde bir okuyarak silinmesini önler. İstenirse Settings → Secrets'a `EVTV_KEYSTORE_B64` + `EVTV_KEY_PASS` eklenerek kalıcı anahtara geçilebilir (öncelik onlarda).
-
-> Repoda 60 gün hiç işlem olmazsa GitHub zamanlanmış işleri durdurur ve anahtar kaybolabilir; o durumda bir kez kaldırıp yeniden kurmak gerekir.
+İmza: Android debug anahtarı, GitHub Actions önbelleğinde sabit tutulur (`keepalive.yml` 3 günde bir okuyarak silinmesini önler). Repoda 60 gün hiç işlem olmazsa GitHub zamanlanmış işleri durdurur; anahtar kaybolursa bir kez kaldırıp yeniden kurmak gerekir.
 
 ## 3. Ana ekran yap
 

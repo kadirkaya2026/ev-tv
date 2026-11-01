@@ -8,9 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.speech.RecognizerIntent;
 import android.view.KeyEvent;
 import android.view.View;
@@ -82,8 +80,6 @@ public class MainActivity extends Activity {
                 js("window.tv && tv.serverEvent(" + JSONObject.quote(event) + ")")));
         server.start();
 
-        InstallReceiver.ui = this;
-
         IntentFilter f = new IntentFilter();
         f.addAction(Intent.ACTION_PACKAGE_ADDED);
         f.addAction(Intent.ACTION_PACKAGE_REMOVED);
@@ -110,7 +106,6 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        if (InstallReceiver.ui == this) InstallReceiver.ui = null;
         try {
             unregisterReceiver(packageReceiver);
         } catch (IllegalArgumentException ignored) {
@@ -173,29 +168,15 @@ public class MainActivity extends Activity {
         js("window.tv && tv.voiceResult(" + (text == null ? "''" : JSONObject.quote(text)) + ")");
     }
 
-    /** Uygulama içi güncelleme: önce bilinmeyen kaynak izni, sonra indir + kur. */
+    /** Güncelleme: APK'yı tarayıcıda açar; tarayıcı indirir, kurulum her zamanki gibi. */
     void startUpdate(String apkUrl) {
-        if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
-            try {
-                startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                        Uri.parse("package:" + getPackageName())));
-                updateStatus(false, "Ev TV'ye “bilinmeyen uygulamaları yükleme” izni ver, sonra tekrar Güncelle'ye bas.");
-            } catch (Exception e) {
-                updateStatus(false, "Ayarlar → Uygulamalar → Özel erişim → Bilinmeyen uygulamaları yükle → Ev TV: izin ver.");
-            }
-            return;
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            updateStatus(true, "Tarayıcıda indiriliyor. Bitince dosyayı açıp “Yükle”ye bas; ayarların silinmez.");
+        } catch (Exception e) {
+            updateStatus(false, "Tarayıcı açılamadı. Tarayıcıya ekatalox.com/evtv yazarak indirebilirsin.");
         }
-        new Thread(() -> Updater.downloadAndInstall(getApplicationContext(), apkUrl, new Updater.Listener() {
-            @Override
-            public void onProgress(int percent) {
-                runOnUiThread(() -> js("window.tv && tv.updateProgress(" + percent + ")"));
-            }
-
-            @Override
-            public void onDone(boolean ok, String message) {
-                updateStatus(ok, message);
-            }
-        }), "evtv-update").start();
     }
 
     void updateStatus(boolean ok, String message) {
