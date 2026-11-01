@@ -56,6 +56,64 @@ final class Assistant {
     private AnthropicClient client;
     private String clientKey;
 
+    static final String SERVER_ASK = "https://www.ekatalox.com/api/evtv/ask";
+
+    private String askServer(String question) {
+        JSONObject req = new JSONObject();
+        int code;
+        String body;
+        try {
+            JSONArray hist = new JSONArray();
+            synchronized (this) {
+                int start = Math.max(0, history.size() - MAX_TURNS * 2);
+                for (int i = start; i < history.size(); i++) {
+                    Turn t = history.get(i);
+                    hist.put(new JSONObject().put("role", t.role).put("text", t.text));
+                }
+            }
+            req.put("question", question).put("history", hist);
+            HttpURLConnection c = (HttpURLConnection) new URL(SERVER_ASK).openConnection();
+            c.setRequestMethod("POST");
+            c.setConnectTimeout(15000);
+            c.setReadTimeout(90000);
+            c.setDoOutput(true);
+            c.setRequestProperty("Content-Type", "application/json");
+            c.setRequestProperty("User-Agent", "EvTV");
+            try (OutputStream out = c.getOutputStream()) {
+                out.write(req.toString().getBytes(StandardCharsets.UTF_8));
+            }
+            code = c.getResponseCode();
+            InputStream in = code < 400 ? c.getInputStream() : c.getErrorStream();
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            if (in != null) {
+                byte[] buf = new byte[8192];
+                int r;
+                while ((r = in.read(buf)) > 0) b.write(buf, 0, r);
+                in.close();
+            }
+            body = b.toString("UTF-8");
+        } catch (Exception e) {
+            throw new IllegalStateException("İnternet bağlantısı kurulamadı.");
+        }
+        JSONObject res;
+        try {
+            res = new JSONObject(body);
+        } catch (Exception e) {
+            throw new IllegalStateException("Asistan şu an cevap veremedi (" + code + ").");
+        }
+        if (code != 200) {
+            throw new IllegalStateException(res.optString("error", "Asistan şu an cevap veremedi (" + code + ")."));
+        }
+        String answer = res.optString("answer", "").trim();
+        if (answer.isEmpty()) answer = "(Boş cevap geldi, tekrar dener misin?)";
+        synchronized (this) {
+            history.add(new Turn("user", question));
+            history.add(new Turn("assistant", answer));
+            while (history.size() > MAX_TURNS * 2) history.remove(0);
+        }
+        return answer;
+    }
+
     private String askOpenAi(String apiKey, String question) {
         JSONArray messages = new JSONArray();
         try {
@@ -152,9 +210,8 @@ final class Assistant {
 
     /** Engelleyici çağrı; arka plan iş parçacığından çağrılmalı. */
     String ask(String apiKey, String question) {
-        if (apiKey == null || apiKey.isEmpty()) {
-            throw new IllegalStateException("API anahtarı yok. Telefondan Ayarlar sekmesinde gir.");
-        }
+        // Kendi anahtarı girilmemişse ekatalox sunucusu üzerinden (anahtar sunucuda)
+        if (apiKey == null || apiKey.isEmpty()) return askServer(question);
         if (!apiKey.startsWith("sk-ant-")) return askOpenAi(apiKey, question);
         MessageCreateParams.Builder b;
         synchronized (this) {

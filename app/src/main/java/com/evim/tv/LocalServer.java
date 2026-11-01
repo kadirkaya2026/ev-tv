@@ -363,7 +363,7 @@ final class LocalServer {
                 case "POST /api/config": {
                     String key = new JSONObject(bodyStr).optString("apiKey").trim();
                     Store.setApiKey(ctx, key);
-                    broadcast(new JSONObject().put("type", "config").put("hasKey", !key.isEmpty()).toString());
+                    broadcast(new JSONObject().put("type", "config").put("hasKey", true).toString());
                     send(out, 200, "application/json", "{\"ok\":true}");
                     return;
                 }

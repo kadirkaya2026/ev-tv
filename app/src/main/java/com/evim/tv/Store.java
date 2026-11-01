@@ -21,8 +21,9 @@ final class Store {
         return p(c).getString("apiKey", "");
     }
 
+    /** Asistan kullanılabilir mi: kendi anahtarı yoksa ekatalox sunucusu kullanılır. */
     static boolean hasApiKey(Context c) {
-        return !apiKey(c).isEmpty();
+        return true;
     }
 
     static void setApiKey(Context c, String key) {

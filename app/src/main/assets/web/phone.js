@@ -212,7 +212,7 @@
   // ---------------------------------------------------------------- ayarlar
   function showKeyState() {
     $('#keyState').textContent = hasKey
-      ? 'Anahtar kayıtlı ✓' + (REMOTE ? '' : ' (değiştirmek için yenisini yapıştır)')
+      ? 'Asistan hazır ✓ — anahtar gerekmez. İstersen kendi ChatGPT/Claude anahtarını girebilirsin.'
       : 'Henüz anahtar girilmedi.';
     if (REMOTE) {
       $('#keyForm').hidden = true;
