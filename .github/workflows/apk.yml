@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -25,24 +24,45 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
-      # Sabit imza anahtarı GitHub Secrets'tan gelir (repoda yok). Yoksa debug imzası
-      # kullanılır ama sürüm YAYINLANMAZ; aksi halde uygulama içi güncelleme bozulur.
+      # Sabit imza anahtarı: her sürüm aynı anahtarla imzalanmalı ki uygulama içinden
+      # güncelleme kurulabilsin. Anahtar repoda YOK. Öncelik GitHub Secrets'ta
+      # (EVTV_KEYSTORE_B64 + EVTV_KEY_PASS); yoksa ilk derlemede rastgele şifreyle
+      # üretilip Actions önbelleğinde saklanır (keepalive.yml önbelleği canlı tutar).
+      - name: İmza anahtarı önbelleği
+        uses: actions/cache@v4
+        with:
+          path: .evtv-signing
+          key: evtv-signing-v1
+
       - name: İmza anahtarını hazırla
         id: sign
         env:
           EVTV_KEYSTORE_B64: ${{ secrets.EVTV_KEYSTORE_B64 }}
+          SECRET_PASS: ${{ secrets.EVTV_KEY_PASS }}
         run: |
-          if [ -n "$EVTV_KEYSTORE_B64" ]; then
+          if [ -n "$EVTV_KEYSTORE_B64" ] && [ -n "$SECRET_PASS" ]; then
             echo "$EVTV_KEYSTORE_B64" | base64 -d > app/evtv-release.jks
-            echo "signed=true" >> "$GITHUB_OUTPUT"
+            echo "EVTV_KEY_PASS=$SECRET_PASS" >> "$GITHUB_ENV"
+            echo "İmza: GitHub Secrets"
           else
-            echo "::warning::EVTV_KEYSTORE_B64 gizli ayarı yok; APK debug imzalı, sürüm yayınlanmayacak."
-            echo "signed=false" >> "$GITHUB_OUTPUT"
+            mkdir -p .evtv-signing
+            if [ ! -f .evtv-signing/evtv-release.jks ]; then
+              openssl rand -hex 24 > .evtv-signing/pass
+              PASS=$(cat .evtv-signing/pass)
+              keytool -genkeypair -keystore .evtv-signing/evtv-release.jks -alias evtv \
+                -keyalg RSA -keysize 2048 -validity 36500 \
+                -storepass "$PASS" -keypass "$PASS" -dname "CN=Ev TV, C=TR"
+              echo "::notice::Yeni imza anahtarı oluşturuldu ve önbelleğe alınacak."
+            fi
+            PASS=$(cat .evtv-signing/pass)
+            echo "::add-mask::$PASS"
+            cp .evtv-signing/evtv-release.jks app/evtv-release.jks
+            echo "EVTV_KEY_PASS=$PASS" >> "$GITHUB_ENV"
+            echo "İmza: Actions önbelleği"
           fi
+          echo "signed=true" >> "$GITHUB_OUTPUT"
 
       - name: APK derle
-        env:
-          EVTV_KEY_PASS: ${{ secrets.EVTV_KEY_PASS }}
         run: gradle --no-daemon assembleRelease
 
       - name: Dosya adını düzenle

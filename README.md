@@ -48,12 +48,10 @@ v1.3'ten itibaren uygulama kendi kendini günceller: yeni sürüm çıkınca ana
 
 > v1.2 ve öncesi her derlemede farklı imzayla çıktığı için v1.3'e geçerken **bir kez** eski sürümü kaldırıp yeniden kurman gerekir. Sonrası hep uygulama içinden.
 
-### Derleme imzası (repo sahibi için)
-Sürümlerin hepsi aynı anahtarla imzalanmalı. Anahtar repoda değil, GitHub → Settings → Secrets and variables → Actions'ta durur:
-- `EVTV_KEYSTORE_B64`: `evtv-release.jks` dosyasının base64 hali
-- `EVTV_KEY_PASS`: anahtar şifresi
+### Derleme imzası
+Sürümlerin hepsi aynı anahtarla imzalanmalı. Anahtar repoda değil: ilk derlemede GitHub Actions rastgele şifreyle üretip Actions önbelleğinde saklar; `keepalive.yml` 3 günde bir okuyarak silinmesini önler. İstenirse Settings → Secrets'a `EVTV_KEYSTORE_B64` + `EVTV_KEY_PASS` eklenerek kalıcı anahtara geçilebilir (öncelik onlarda).
 
-Bu ikisi yoksa Actions APK'yı derler ama **Releases'e yayınlamaz** (yanlış imzalı sürüm güncellemeyi bozmasın diye).
+> Repoda 60 gün hiç işlem olmazsa GitHub zamanlanmış işleri durdurur ve anahtar kaybolabilir; o durumda bir kez kaldırıp yeniden kurmak gerekir.
 
 ## 3. Ana ekran yap
 

@@ -1,0 +1,18 @@
+name: İmza anahtarını canlı tut
+
+# GitHub, 7 gün kullanılmayan önbellekleri siler. İmza anahtarı önbellekte
+# durduğu için 3 günde bir okunur; böylece güncellemeler hep aynı anahtarla imzalanır.
+on:
+  schedule:
+    - cron: "17 4 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  touch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/cache/restore@v4
+        with:
+          path: .evtv-signing
+          key: evtv-signing-v1
+          fail-on-cache-miss: false
